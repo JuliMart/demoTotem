@@ -89,7 +89,7 @@ class _HomeScreenState extends State<HomeScreen> {
               style: TextStyle(fontSize: 60, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 20),
-            Image.asset('assets/pngegg.png', height: 350, width: 400),
+            Image.asset('assets/pngegg.png', height: 300, width: 380),
             const SizedBox(height: 20),
             if (isConnecting)
               const Center(
