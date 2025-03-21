@@ -98,6 +98,13 @@ class _HomeScreenState extends State<HomeScreen> {
                   style: TextStyle(fontSize: 16, color: Colors.black54),
                 ),
               ),
+            // Información minimalista para el usuario:
+            const SizedBox(height: 20),
+            const Text(
+              'Levanta el pulgar para acceder con IA, o presiona "Continuar" para ingresar de forma normal.',
+              textAlign: TextAlign.center,
+              style: TextStyle(fontSize: 16, color: Colors.black54),
+            ),
             const Spacer(),
             Row(
               mainAxisAlignment: MainAxisAlignment.center,
