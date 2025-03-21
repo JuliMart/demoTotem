@@ -181,6 +181,13 @@ class _OptionGestureScreenState extends State<OptionGestureScreen> {
                 style: TextStyle(fontSize: 16, color: Colors.black54),
               ),
             const SizedBox(height: 20),
+            // Información para el usuario:
+            const Text(
+              'Cada botón puede ser seleccionado realizando el gesto de los números del 1 al 4.',
+              textAlign: TextAlign.center,
+              style: TextStyle(fontSize: 16, color: Colors.black54),
+            ),
+            const SizedBox(height: 20),
             const Spacer(),
             Column(
               mainAxisSize:

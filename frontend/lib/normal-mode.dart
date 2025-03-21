@@ -365,6 +365,13 @@ class _NormalModeScreenState extends State<NormalModeScreen>
                   color: Colors.red[600],
                   onPressed: _isListening ? _stopListening : _startListening,
                 ),
+                // Información para el usuario:
+                const SizedBox(height: 20),
+                const Text(
+                  'Puedes ingresar los números hablando y confirmar con la palabra "continuar".',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(fontSize: 16, color: Colors.black54),
+                ),
                 const SizedBox(height: 20),
                 Container(
                   width: 300,
