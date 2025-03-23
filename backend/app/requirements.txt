@@ -66,3 +66,4 @@ wheel==0.45.1
 fastapi
 uvicorn
 gunicorn
+mediapipe==0.10.21
