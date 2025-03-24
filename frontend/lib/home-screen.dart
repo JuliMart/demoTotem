@@ -23,7 +23,7 @@ class _HomeScreenState extends State<HomeScreen> {
   void _connectToWebSocket() {
     try {
       _channel = WebSocketChannel.connect(
-        Uri.parse('ws://192.168.0.5:8000/detect-gesture'),
+        Uri.parse('ws://192.168.153.156:8000/detect-gesture'),
       );
       _channel.stream.listen(
         (message) {
@@ -83,13 +83,14 @@ class _HomeScreenState extends State<HomeScreen> {
         padding: const EdgeInsets.symmetric(horizontal: 16.0),
         child: Column(
           children: [
-            const SizedBox(height: 20),
+            const SizedBox(height: 150),
             const Text(
               'BIENVENIDO!',
               style: TextStyle(fontSize: 60, fontWeight: FontWeight.bold),
             ),
+
             const SizedBox(height: 20),
-            Image.asset('assets/pngegg.png', height: 300, width: 380),
+            Image.asset('assets/pngegg.png', height: 500, width: 300),
             const SizedBox(height: 20),
             if (isConnecting)
               const Center(
@@ -98,13 +99,18 @@ class _HomeScreenState extends State<HomeScreen> {
                   style: TextStyle(fontSize: 16, color: Colors.black54),
                 ),
               ),
-            const Spacer(),
+            const Text(
+              'Presiona "Continuar" o levanta el pulgar para acceder con IA',
+              textAlign: TextAlign.center,
+              style: TextStyle(fontSize: 16, color: Colors.black54),
+            ),
+            const SizedBox(height: 200),
             Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 FilledButton(
                   style: FilledButton.styleFrom(
-                    backgroundColor: Colors.red,
+                    backgroundColor: Color(0xFFF30C0C),
                     foregroundColor: Colors.white,
                     padding: const EdgeInsets.symmetric(
                       horizontal: 40,

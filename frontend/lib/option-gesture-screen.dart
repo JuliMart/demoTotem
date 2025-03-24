@@ -73,7 +73,7 @@ class _OptionGestureScreenState extends State<OptionGestureScreen> {
 
     try {
       _channel = WebSocketChannel.connect(
-        Uri.parse('ws://192.168.0.5:8000/detect-gesture'),
+        Uri.parse('ws://192.168.153.156:8000/detect-gesture'),
       );
 
       _channel.stream.listen(
@@ -173,23 +173,30 @@ class _OptionGestureScreenState extends State<OptionGestureScreen> {
                 style: TextStyle(fontSize: 60, fontWeight: FontWeight.bold),
               ),
             ),
+
+            Image.asset('assets/ejecutivo.png', height: 500, width: 500),
             const SizedBox(height: 20),
-            Image.asset('assets/ejecutivo.png', height: 240, width: 300),
             if (isConnecting)
               const Text(
                 'Conectando con la IA...',
                 style: TextStyle(fontSize: 16, color: Colors.black54),
               ),
-            const SizedBox(height: 20),
-            const Spacer(),
+            SizedBox(height: 80),
+
+            const Text(
+              'También puedes elegir las opciones haciendo gestos de los números del 1 al 4',
+              textAlign: TextAlign.center,
+              style: TextStyle(fontSize: 16, color: Colors.black54),
+            ),
+            const SizedBox(height: 30),
+
             Column(
-              mainAxisSize:
-                  MainAxisSize
-                      .min, // 🔥 Esto evita que los botones ocupen toda la pantalla
+              mainAxisSize: MainAxisSize.min,
               children: [
-                const SizedBox(height: 10), // 🔥 Reduce el espacio superior
+                const SizedBox(height: 10),
                 SizedBox(
                   width: 300,
+                  height: 30,
                   child: ElevatedButton(
                     onPressed: () => _navigateToScreen(const IAchoose1()),
                     style: buttonStyle(),
@@ -199,11 +206,11 @@ class _OptionGestureScreenState extends State<OptionGestureScreen> {
                     ),
                   ),
                 ),
-                const SizedBox(
-                  height: 10,
-                ), // 🔥 Reduce el espacio entre botones
+                const SizedBox(height: 10),
                 SizedBox(
                   width: 300,
+                  height: 30,
+
                   child: ElevatedButton(
                     onPressed: () => _navigateToScreen(const IAchoose2()),
                     style: buttonStyle(),
@@ -216,6 +223,8 @@ class _OptionGestureScreenState extends State<OptionGestureScreen> {
                 const SizedBox(height: 10),
                 SizedBox(
                   width: 300,
+                  height: 30,
+
                   child: ElevatedButton(
                     onPressed: () => _navigateToScreen(const IAchoose3()),
                     style: buttonStyle(),
@@ -228,6 +237,8 @@ class _OptionGestureScreenState extends State<OptionGestureScreen> {
                 const SizedBox(height: 10),
                 SizedBox(
                   width: 300,
+                  height: 30,
+
                   child: ElevatedButton(
                     onPressed: () => _navigateToScreen(const ColorDetect()),
                     style: buttonStyle(),
