@@ -16,12 +16,12 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Set up Python
+      - name: Set up Python version
         uses: actions/setup-python@v5
         with:
           python-version: '3.11'
 
-      - name: Create virtual environment
+      - name: Create and start virtual environment
         run: |
           python -m venv venv
           source venv/bin/activate
@@ -32,17 +32,19 @@ jobs:
           pip install --upgrade pip
           pip install -r backend/app/requirements.txt
 
-      # (Opcional) Ejecuta tests aquí si lo deseas
-      # - name: Run tests
-      #   run: pytest
+      # Opcional: Si deseas arrancar Gunicorn en este job (normalmente se configura en Azure)
+      # - name: Start FastAPI (Gunicorn)
+      #   run: |
+      #     source venv/bin/activate
+      #     pip install gunicorn
+      #     cd backend
+      #     gunicorn -w 4 -k uvicorn.workers.UvicornWorker backend.app.api:app --bind 0.0.0.0:8000
 
       - name: Zip artifact for deployment
         run: |
-          # Nos ubicamos en la raíz del repo y comprimimos todo, 
-          # excepto la carpeta venv si no la necesitas en el servidor
           zip -r release.zip . -x "venv/*"
 
-      - name: Upload artifact
+      - name: Upload artifact for deployment jobs
         uses: actions/upload-artifact@v4
         with:
           name: python-app
@@ -59,15 +61,15 @@ jobs:
       contents: read
 
     steps:
-      - name: Download artifact
+      - name: Download artifact from build job
         uses: actions/download-artifact@v4
         with:
           name: python-app
 
-      - name: Unzip artifact
+      - name: Unzip artifact for deployment
         run: unzip release.zip
 
-      - name: Azure Login
+      - name: Login to Azure
         uses: azure/login@v2
         with:
           client-id: ${{ secrets.AZUREAPPSERVICE_CLIENTID_56BE23A6A6C34920BD9B1B2CA842C648 }}
@@ -78,6 +80,6 @@ jobs:
         uses: azure/webapps-deploy@v3
         id: deploy-to-webapp
         with:
-          app-name: 'v1'           # Ajusta al nombre de tu App Service
-          slot-name: 'Production'  # Ajusta si no usas slots
-          package: 'release.zip'
+          app-name: 'v1'
+          slot-name: 'Production'
+          package: release.zip
