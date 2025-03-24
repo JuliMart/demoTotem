@@ -12,7 +12,7 @@ class ColorDetect extends StatefulWidget {
 
 class _ColorDetectState extends State<ColorDetect> {
   final WebSocketChannel clothingChannel = WebSocketChannel.connect(
-    Uri.parse('ws://192.168.0.5:8000/detect-clothing'),
+    Uri.parse('ws://192.168.153.156:8000/detect-clothing'),
   );
 
   String _getMessageForColor(Color color) {

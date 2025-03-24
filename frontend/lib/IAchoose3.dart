@@ -122,7 +122,7 @@ class _IAchoose3State extends State<IAchoose3> {
                 style: const TextStyle(
                   fontSize: 36,
                   fontWeight: FontWeight.bold,
-                  color: Colors.red,
+                  color: Color(0xFFF30C0C),
                 ),
               ),
               const SizedBox(height: 20),
@@ -162,7 +162,7 @@ class _IAchoose3State extends State<IAchoose3> {
             Icon(
               _isListening ? Icons.mic : Icons.mic_none,
               size: 40,
-              color: Colors.red[600],
+              color: Color(0xFFF30C0C),
             ),
           ],
         ),

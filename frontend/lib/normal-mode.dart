@@ -189,10 +189,10 @@ class _NormalModeScreenState extends State<NormalModeScreen>
           partialResults: true,
           pauseFor: const Duration(
             seconds: 10,
-          ), // 🔥 Esperar 10 segundos antes de pausar
+          ), // Esperar 10 segundos antes de pausar
           listenFor: const Duration(
             minutes: 10,
-          ), // 🔥 Mantener escucha por 10 minutos
+          ), // Mantener escucha por 10 minutos
           onSoundLevelChange: (level) {
             debugPrint("Nivel de sonido: $level");
           },
@@ -345,8 +345,14 @@ class _NormalModeScreenState extends State<NormalModeScreen>
           ),
           child: Center(
             child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
               children: [
+                ///  const SizedBox(height: 290),
+                const Text(
+                  "Ingresa",
+                  style: TextStyle(fontSize: 60, fontWeight: FontWeight.bold),
+                ),
+                const SizedBox(height: 20),
+
                 Container(
                   width: 300,
                   child: TextField(
@@ -362,7 +368,7 @@ class _NormalModeScreenState extends State<NormalModeScreen>
                 IconButton(
                   icon: Icon(_isListening ? Icons.mic : Icons.mic_none),
                   iconSize: 40,
-                  color: Colors.red[600],
+                  color: Color(0xFFF30C0C),
                   onPressed: _isListening ? _stopListening : _startListening,
                 ),
                 const SizedBox(height: 20),
@@ -408,16 +414,26 @@ class _NormalModeScreenState extends State<NormalModeScreen>
                     ],
                   ),
                 ),
-                const SizedBox(height: 40),
+                const SizedBox(height: 200),
+                // Mensaje informativo para el usuario:
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 20.0),
+                  child: Text(
+                    "Puedes decir los números en voz alta y luego 'Continuar'.",
+                    textAlign: TextAlign.center,
+                    style: TextStyle(fontSize: 14, color: Colors.grey[800]),
+                  ),
+                ),
+                const SizedBox(height: 20),
                 FilledButton(
                   style: FilledButton.styleFrom(
-                    backgroundColor: Colors.red[600],
+                    backgroundColor: Color(0xFFF30C0C),
                     foregroundColor: Colors.white,
                     padding: const EdgeInsets.symmetric(
                       horizontal: 40,
                       vertical: 30,
                     ),
-                    textStyle: const TextStyle(fontSize: 16),
+                    textStyle: const TextStyle(fontSize: 22),
                   ),
                   onPressed: _onContinuePressed,
                   child: const Text("Continuar"),
