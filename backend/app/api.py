@@ -201,7 +201,7 @@ async def websocket_clothing(websocket: WebSocket):
 
 
 @app.get("/")
-async def home():
+async def root():
     return {"message": "FastAPI server is running"}
 
 
