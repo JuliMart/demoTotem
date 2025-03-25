@@ -12,4 +12,4 @@ pip install --upgrade pip
 pip install -r requirements.txt
 
 # Iniciar la aplicación
-gunicorn --bind=0.0.0.0:8000 app.api:app 
+python -m uvicorn backend.app.api:app --host 0.0.0.0 --port ${PORT:-8000}
