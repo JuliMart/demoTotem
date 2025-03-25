@@ -1,3 +1,5 @@
 #!/bin/bash
 cd /home/site/wwwroot
-gunicorn --bind=0.0.0.0:8000 app.api:app 
+python -m pip install --upgrade pip
+pip install -r requirements.txt
+gunicorn app.api:app --bind=0.0.0.0:8000 
