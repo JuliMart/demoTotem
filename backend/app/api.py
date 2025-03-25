@@ -43,10 +43,12 @@ pose = mp_pose.Pose(
 gesture_detected = "waiting"
 clothing_color = "unknown"  # Se almacenará un valor hexadecimal
 
-# Captura de video (asegúrate de tener conectada una cámara)
-cap = cv2.VideoCapture(0)
-if not cap.isOpened():
-    logging.error("No se pudo abrir la cámara. Verifica que esté conectada.")
+# Modificar la inicialización de la cámara
+try:
+    cap = cv2.VideoCapture(0)
+except Exception as e:
+    logger.error(f"Error al inicializar la cámara: {e}")
+    cap = None
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -127,46 +129,55 @@ def recognize_number_gesture(fingers, hand_landmarks):
 
 def process_frames():
     global gesture_detected, clothing_color
+    if cap is None:
+        logger.error("No se pudo inicializar la cámara")
+        return
+
     while True:
-        ret, frame = cap.read()
-        if not ret:
-            gesture_detected = "waiting"
-            clothing_color = "unknown"
-            time.sleep(0.05)
-            continue
-
-        # Convertir la imagen a RGB para MediaPipe
-        rgb_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-        result_hands = hands.process(rgb_frame)
-        new_gesture = "waiting"
-        if result_hands.multi_hand_landmarks:
-            for hand_landmarks in result_hands.multi_hand_landmarks:
-                fingers = get_finger_states(hand_landmarks)
-                new_gesture = recognize_number_gesture(fingers, hand_landmarks)
-                # Procesa sólo la primera mano detectada
-                break
-        gesture_detected = new_gesture
-
-        # Definir una región de interés (ROI) central para detectar el color dominante (simulando el torso)
-        h, w, _ = frame.shape
-        roi_width = int(w * 0.3)
-        roi_height = int(h * 0.3)
-        center_x = w // 2
-        center_y = h // 2
-        x1 = max(center_x - roi_width // 2, 0)
-        y1 = max(center_y - roi_height // 2, 0)
-        x2 = min(center_x + roi_width // 2, w)
-        y2 = min(center_y + roi_height // 2, h)
-        roi = frame[y1:y2, x1:x2]
-        if roi.size != 0:
-            try:
-                dominant_color = compute_dominant_color(roi, k=3)
-                clothing_color = dominant_color
-            except Exception as e:
-                logger.error(f"Error computing dominant color: {e}")
+        try:
+            ret, frame = cap.read()
+            if not ret:
+                gesture_detected = "error"
                 clothing_color = "error"
+                time.sleep(0.05)
+                continue
 
-        time.sleep(0.05)
+            # Convertir la imagen a RGB para MediaPipe
+            rgb_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+            result_hands = hands.process(rgb_frame)
+            new_gesture = "waiting"
+            if result_hands.multi_hand_landmarks:
+                for hand_landmarks in result_hands.multi_hand_landmarks:
+                    fingers = get_finger_states(hand_landmarks)
+                    new_gesture = recognize_number_gesture(
+                        fingers, hand_landmarks)
+                    # Procesa sólo la primera mano detectada
+                    break
+            gesture_detected = new_gesture
+
+            # Definir una región de interés (ROI) central para detectar el color dominante (simulando el torso)
+            h, w, _ = frame.shape
+            roi_width = int(w * 0.3)
+            roi_height = int(h * 0.3)
+            center_x = w // 2
+            center_y = h // 2
+            x1 = max(center_x - roi_width // 2, 0)
+            y1 = max(center_y - roi_height // 2, 0)
+            x2 = min(center_x + roi_width // 2, w)
+            y2 = min(center_y + roi_height // 2, h)
+            roi = frame[y1:y2, x1:x2]
+            if roi.size != 0:
+                try:
+                    dominant_color = compute_dominant_color(roi, k=3)
+                    clothing_color = dominant_color
+                except Exception as e:
+                    logger.error(f"Error computing dominant color: {e}")
+                    clothing_color = "error"
+
+            time.sleep(0.05)
+        except Exception as e:
+            logger.error(f"Error en process_frames: {e}")
+            time.sleep(0.05)
 
 
 @app.websocket("/detect-gesture")
@@ -214,7 +225,8 @@ def startup_event():
 
 @app.on_event("shutdown")
 def shutdown_event():
-    cap.release()
+    if cap is not None:
+        cap.release()
     hands.close()
     pose.close()
     logger.info("Resources released")
