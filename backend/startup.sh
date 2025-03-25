@@ -1,5 +1,15 @@
 #!/bin/bash
-cd /home/site/wwwroot
-python -m pip install --upgrade pip
+echo "Current directory: $(pwd)"
+echo "Listing directory contents:"
+ls -la
+
+# Crear y activar entorno virtual
+python -m venv antenv
+source antenv/bin/activate
+
+# Instalar dependencias
+pip install --upgrade pip
 pip install -r requirements.txt
-gunicorn app.api:app --bind=0.0.0.0:8000 
+
+# Iniciar la aplicación
+gunicorn --bind=0.0.0.0:8000 app.api:app 
