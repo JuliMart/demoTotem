@@ -1,7 +1,11 @@
-// home-screen.dart
 import 'package:flutter/material.dart';
-import 'package:web_socket_channel/web_socket_channel.dart';
 import 'normal-mode.dart';
+
+import 'dart:html' as html;
+import 'dart:typed_data';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
+import 'dart:async';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({Key? key}) : super(key: key);
@@ -11,41 +15,15 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-  late final WebSocketChannel _channel;
   bool isConnecting = true;
+  html.VideoElement? videoElement;
+  html.CanvasElement? canvasElement;
+  Timer? snapshotTimer;
 
   @override
   void initState() {
     super.initState();
-    _connectToWebSocket();
-  }
-
-  void _connectToWebSocket() {
-    try {
-      _channel = WebSocketChannel.connect(
-        Uri.parse('ws://192.168.153.156:8000/detect-gesture'),
-      );
-      _channel.stream.listen(
-        (message) {
-          if (!(ModalRoute.of(context)?.isCurrent ?? false)) return;
-          final command = message.trim().toLowerCase();
-          debugPrint("Mensaje recibido: '$command'");
-          if (command == "thumbs_up") {
-            _simulateButtonPressIA();
-          }
-        },
-        onDone: () => setState(() => isConnecting = false),
-        onError: (error) => setState(() => isConnecting = false),
-        cancelOnError: true,
-      );
-    } catch (e) {
-      debugPrint("Error al conectar al WebSocket: $e");
-      setState(() => isConnecting = false);
-    }
-    Future.delayed(
-      const Duration(seconds: 2),
-      () => setState(() => isConnecting = false),
-    );
+    _startCameraAndDetect();
   }
 
   void _simulateButtonPressIA() {
@@ -68,9 +46,66 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
+  void _startCameraAndDetect() async {
+    final stream = await html.window.navigator.mediaDevices!.getUserMedia({
+      'video': true,
+    });
+
+    videoElement =
+        html.VideoElement()
+          ..autoplay = true
+          ..srcObject = stream
+          ..style.display = 'none';
+
+    html.document.body!.append(videoElement!);
+
+    canvasElement = html.CanvasElement(width: 640, height: 480);
+    isConnecting = false;
+    setState(() {});
+
+    snapshotTimer = Timer.periodic(Duration(milliseconds: 500), (_) async {
+      if (videoElement == null || canvasElement == null) return;
+
+      final ctx = canvasElement!.context2D;
+      ctx.drawImage(videoElement!, 0, 0);
+
+      final blob = await canvasElement!.toBlob('image/jpeg');
+      final reader = html.FileReader();
+      reader.readAsArrayBuffer(blob!);
+      await reader.onLoad.first;
+      final imageBytes = reader.result as Uint8List;
+
+      final uri = Uri.parse('http://167.99.114.20:8000/detect-gesture-image');
+      final request = http.MultipartRequest('POST', uri)
+        ..files.add(
+          http.MultipartFile.fromBytes(
+            'image',
+            imageBytes,
+            filename: 'frame.jpg',
+          ),
+        );
+
+      final response = await request.send();
+      if (response.statusCode == 200) {
+        final responseBody = await response.stream.bytesToString();
+        final decoded = jsonDecode(responseBody);
+        final gesture = decoded['gesture'];
+        if (gesture == 'thumbs_up') {
+          _simulateButtonPressIA();
+        }
+      }
+    });
+  }
+
+  void _stopCamera() {
+    videoElement?.srcObject?.getTracks().forEach((track) => track.stop());
+    videoElement?.remove();
+    snapshotTimer?.cancel();
+  }
+
   @override
   void dispose() {
-    _channel.sink.close();
+    _stopCamera();
     super.dispose();
   }
 
@@ -88,14 +123,13 @@ class _HomeScreenState extends State<HomeScreen> {
               'BIENVENIDO!',
               style: TextStyle(fontSize: 60, fontWeight: FontWeight.bold),
             ),
-
             const SizedBox(height: 20),
             Image.asset('assets/pngegg.png', height: 500, width: 300),
             const SizedBox(height: 20),
             if (isConnecting)
               const Center(
                 child: Text(
-                  'Conectando con la IA...',
+                  'Conectando con la cámara...',
                   style: TextStyle(fontSize: 16, color: Colors.black54),
                 ),
               ),
@@ -132,7 +166,14 @@ class _HomeScreenState extends State<HomeScreen> {
                     ),
                     textStyle: const TextStyle(fontSize: 22),
                   ),
-                  onPressed: _simulateButtonPressIA,
+                  onPressed: () {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('Detectando gestos en tiempo real...'),
+                        duration: Duration(seconds: 2),
+                      ),
+                    );
+                  },
                   icon: const Icon(Icons.smart_toy),
                   label: const Text("Acceder con IA"),
                 ),
