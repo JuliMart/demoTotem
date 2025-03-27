@@ -23,7 +23,7 @@ class _HomeScreenState extends State<HomeScreen> {
   void _connectToWebSocket() {
     try {
       _channel = WebSocketChannel.connect(
-        Uri.parse('ws://192.168.153.156:8000/detect-gesture'),
+        Uri.parse('ws://192.168.0.5:8000/detect-gesture'),
       );
       _channel.stream.listen(
         (message) {
