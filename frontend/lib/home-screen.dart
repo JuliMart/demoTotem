@@ -23,6 +23,35 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   void initState() {
     super.initState();
+    _connectToWebSocket();
+  }
+
+  void _connectToWebSocket() {
+    try {
+      _channel = WebSocketChannel.connect(
+        Uri.parse('ws://192.168.0.5:8000/detect-gesture'),
+      );
+      _channel.stream.listen(
+        (message) {
+          if (!(ModalRoute.of(context)?.isCurrent ?? false)) return;
+          final command = message.trim().toLowerCase();
+          debugPrint("Mensaje recibido: '$command'");
+          if (command == "thumbs_up") {
+            _simulateButtonPressIA();
+          }
+        },
+        onDone: () => setState(() => isConnecting = false),
+        onError: (error) => setState(() => isConnecting = false),
+        cancelOnError: true,
+      );
+    } catch (e) {
+      debugPrint("Error al conectar al WebSocket: $e");
+      setState(() => isConnecting = false);
+    }
+    Future.delayed(
+      const Duration(seconds: 2),
+      () => setState(() => isConnecting = false),
+    );
     _startCameraAndDetect();
   }
 
