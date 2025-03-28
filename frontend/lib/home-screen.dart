@@ -29,7 +29,7 @@ class _HomeScreenState extends State<HomeScreen> {
   void _connectToWebSocket() {
     try {
       _channel = WebSocketChannel.connect(
-        Uri.parse('ws://192.168.0.5:8000/detect-gesture'),
+        Uri.parse('ws://localhost:8000/detect-gesture'),
       );
       _channel.stream.listen(
         (message) {
@@ -147,13 +147,13 @@ class _HomeScreenState extends State<HomeScreen> {
         padding: const EdgeInsets.symmetric(horizontal: 16.0),
         child: Column(
           children: [
-            const SizedBox(height: 150),
+            const SizedBox(height: 300),
             const Text(
               'BIENVENIDO!',
-              style: TextStyle(fontSize: 60, fontWeight: FontWeight.bold),
+              style: TextStyle(fontSize: 90, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 20),
-            Image.asset('assets/pngegg.png', height: 500, width: 300),
+            Image.asset('assets/pngegg.png', height: 800, width: 800),
             const SizedBox(height: 20),
             if (isConnecting)
               const Center(
@@ -176,8 +176,8 @@ class _HomeScreenState extends State<HomeScreen> {
                     backgroundColor: Color(0xFFF30C0C),
                     foregroundColor: Colors.white,
                     padding: const EdgeInsets.symmetric(
-                      horizontal: 40,
-                      vertical: 30,
+                      horizontal: 70,
+                      vertical: 50,
                     ),
                     textStyle: const TextStyle(fontSize: 22),
                   ),
@@ -190,8 +190,8 @@ class _HomeScreenState extends State<HomeScreen> {
                     backgroundColor: Colors.grey,
                     foregroundColor: Colors.white,
                     padding: const EdgeInsets.symmetric(
-                      horizontal: 40,
-                      vertical: 30,
+                      horizontal: 70,
+                      vertical: 50,
                     ),
                     textStyle: const TextStyle(fontSize: 22),
                   ),
