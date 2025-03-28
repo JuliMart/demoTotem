@@ -12,20 +12,18 @@ class IAchoose1 extends StatefulWidget {
 class _IAchoose1State extends State<IAchoose1> {
   late stt.SpeechToText _speech;
   bool _isListening = false;
-  bool _documentEntered = false; // 🔥 Agregada para evitar errores
+  bool _documentEntered = false; // Para evitar errores
   int? _ticketNumber;
   bool _commandExecuted = false; // Bandera para evitar múltiples ejecuciones
-
   int _retryCount = 0;
-  static const int _maxRetries = 5; // Corrección de constante
+  static const int _maxRetries = 5;
 
   @override
   void initState() {
     super.initState();
     _speech = stt.SpeechToText();
-    _commandExecuted =
-        false; // 🔥 Resetear para evitar activaciones incorrectas
-    _documentEntered = false; // 🔥 Permitir ingreso de un nuevo documento
+    _commandExecuted = false;
+    _documentEntered = false;
     _startListening();
   }
 
@@ -71,14 +69,13 @@ class _IAchoose1State extends State<IAchoose1> {
           List<String> words = recognized.split(RegExp(r'\s+'));
 
           if (_documentEntered) {
-            words.removeWhere(
-              (word) => RegExp(r'^\d+$').hasMatch(word),
-            ); // 🔥 Bloquea números
+            // Bloquea números una vez ingresado
+            words.removeWhere((word) => RegExp(r'^\d+$').hasMatch(word));
           }
 
           if (words.isEmpty) return;
 
-          // 🔥 Si la palabra reconocida contiene "lizar", ejecuta el mismo flujo del botón "Finalizar"
+          // Si reconoce algo como "finalizar", ejecuta la lógica
           if (words.any((word) => word.contains("lizar")) &&
               !_commandExecuted) {
             Future.delayed(const Duration(milliseconds: 500), () {
@@ -111,7 +108,7 @@ class _IAchoose1State extends State<IAchoose1> {
           context,
           MaterialPageRoute(builder: (context) => const HomeScreen()),
         ).then((_) {
-          // 🔥 Cuando vuelva a esta pantalla, reseteamos el flujo
+          // Al volver a esta pantalla, reseteamos el flujo
           setState(() {
             _commandExecuted = false;
             _documentEntered = false;
@@ -121,11 +118,14 @@ class _IAchoose1State extends State<IAchoose1> {
     });
   }
 
+  /// Unificamos el estilo de los botones con bordes redondeados (radio 50)
   ButtonStyle buttonStyle(Color color) {
-    return ElevatedButton.styleFrom(
+    return FilledButton.styleFrom(
       backgroundColor: color,
       foregroundColor: Colors.white,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
+      padding: const EdgeInsets.symmetric(horizontal: 70, vertical: 50),
+      textStyle: const TextStyle(fontSize: 22),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(50)),
       elevation: 5,
     );
   }
@@ -142,69 +142,61 @@ class _IAchoose1State extends State<IAchoose1> {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
+              // Imagen grande
               Padding(
                 padding: const EdgeInsets.all(16.0),
-                child: Image.asset('assets/check.png', height: 150),
+                child: Image.asset('assets/check.png', height: 400),
               ),
               const SizedBox(height: 40),
               if (_ticketNumber != null) ...[
+                // Texto grande
                 const Text(
                   'Su número de atención es:',
-                  style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+                  style: TextStyle(fontSize: 40, fontWeight: FontWeight.bold),
                 ),
                 Text(
                   'A-$_ticketNumber',
                   style: const TextStyle(
-                    fontSize: 36,
+                    fontSize: 42,
                     fontWeight: FontWeight.bold,
                     color: Color(0xFFF30C0C),
                   ),
                 ),
-                const SizedBox(height: 20),
+                const SizedBox(height: 30),
               ] else ...[
                 const Text(
                   'Presione o diga "Finalizar" \npara generar su número de atención.',
-                  style: TextStyle(fontSize: 18),
+                  style: TextStyle(fontSize: 30),
                   textAlign: TextAlign.center,
                 ),
-                const SizedBox(height: 20),
+                const SizedBox(height: 30),
               ],
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  // 🔥 Botón ahora es "Finalizar" en lugar de "Continuar"
-                  ElevatedButton(
-                    onPressed: _onFinishPressed,
+                  // Botón "Finalizar"
+                  FilledButton(
                     style: buttonStyle(const Color(0xFFF30C0C)),
-                    child: const Padding(
-                      padding: EdgeInsets.symmetric(
-                        horizontal: 20,
-                        vertical: 12,
-                      ),
-                      child: Text('Finalizar', style: TextStyle(fontSize: 16)),
-                    ),
+                    onPressed: _onFinishPressed,
+                    child: const Text("Finalizar"),
                   ),
-                  const SizedBox(width: 15),
-                  ElevatedButton(
+                  const SizedBox(width: 20),
+                  // Botón "Volver" con el mismo estilo
+                  FilledButton(
+                    style: buttonStyle(Colors.grey),
                     onPressed: () {
                       Navigator.pop(context);
                     },
-                    style: buttonStyle(Colors.grey),
-                    child: const Padding(
-                      padding: EdgeInsets.symmetric(
-                        horizontal: 20,
-                        vertical: 12,
-                      ),
-                      child: Text('Volver', style: TextStyle(fontSize: 16)),
-                    ),
+                    child: const Text("Volver"),
                   ),
                 ],
               ),
-              const SizedBox(height: 20),
+              const SizedBox(height: 30),
+              // Ícono micrófono
               Icon(
                 _isListening ? Icons.mic : Icons.mic_none,
-                size: 40,
-                color: Color(0xFFF30C0C),
+                size: 50,
+                color: const Color(0xFFF30C0C),
               ),
             ],
           ),

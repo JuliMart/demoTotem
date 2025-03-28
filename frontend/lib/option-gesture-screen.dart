@@ -69,11 +69,11 @@ class _OptionGestureScreenState extends State<OptionGestureScreen> {
   }
 
   void _connectToWebSocket() {
-    String? _lastGesture; // Variable para almacenar el último gesto detectado
+    String? _lastGesture; // Último gesto detectado
 
     try {
       _channel = WebSocketChannel.connect(
-        Uri.parse('ws://192.168.0.5:8000/detect-gesture'),
+        Uri.parse('ws://127.0.0.1:8000/detect-gesture'),
       );
 
       _channel.stream.listen(
@@ -81,15 +81,14 @@ class _OptionGestureScreenState extends State<OptionGestureScreen> {
           final currentTime = DateTime.now();
           final trimmedMessage = message.trim();
 
-          // Verifica si el gesto es igual al último detectado y si ha pasado poco tiempo
+          // Evita gestos repetidos en poco tiempo
           if (_lastGesture == trimmedMessage &&
               _lastGestureTime != null &&
               currentTime.difference(_lastGestureTime!) <
                   const Duration(seconds: 3)) {
-            return; // Ignora detecciones repetidas en menos de 2 segundos
+            return;
           }
 
-          // Guarda el gesto y el tiempo de detección
           _lastGesture = trimmedMessage;
           _lastGestureTime = currentTime;
 
@@ -161,107 +160,79 @@ class _OptionGestureScreenState extends State<OptionGestureScreen> {
         backgroundColor: const Color(0xFFF30C0C),
         foregroundColor: Colors.white,
       ),
-      body: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.center,
-          children: [
-            const SizedBox(height: 20),
-            const Center(
-              child: Text(
+      body: Center(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.symmetric(horizontal: 16.0),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            // Centrar el contenido horizontalmente
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              const SizedBox(height: 150),
+              const Text(
                 '¿En qué puedo ayudarte?',
                 style: TextStyle(fontSize: 60, fontWeight: FontWeight.bold),
+                textAlign: TextAlign.center,
               ),
-            ),
-
-            Image.asset('assets/ejecutivo.png', height: 500, width: 500),
-            const SizedBox(height: 20),
-            if (isConnecting)
+              const SizedBox(height: 20),
+              Image.asset('assets/ejecutivo.png', height: 300),
+              const SizedBox(height: 20),
+              if (isConnecting)
+                const Text(
+                  'Conectando con la IA...',
+                  style: TextStyle(fontSize: 16, color: Colors.black54),
+                ),
+              const SizedBox(height: 30),
               const Text(
-                'Conectando con la IA...',
+                'También puedes elegir las opciones haciendo gestos de los números del 1 al 4',
+                textAlign: TextAlign.center,
                 style: TextStyle(fontSize: 16, color: Colors.black54),
               ),
-            SizedBox(height: 80),
-
-            const Text(
-              'También puedes elegir las opciones haciendo gestos de los números del 1 al 4',
-              textAlign: TextAlign.center,
-              style: TextStyle(fontSize: 16, color: Colors.black54),
-            ),
-            const SizedBox(height: 30),
-
-            Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                const SizedBox(height: 10),
-                SizedBox(
-                  width: 300,
-                  height: 30,
-                  child: ElevatedButton(
-                    onPressed: () => _navigateToScreen(const IAchoose1()),
-                    style: buttonStyle(),
-                    child: const Text(
-                      'Depósito cheques',
-                      style: TextStyle(fontSize: 18),
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 10),
-                SizedBox(
-                  width: 300,
-                  height: 30,
-
-                  child: ElevatedButton(
-                    onPressed: () => _navigateToScreen(const IAchoose2()),
-                    style: buttonStyle(),
-                    child: const Text(
-                      'Atención por caja',
-                      style: TextStyle(fontSize: 18),
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 10),
-                SizedBox(
-                  width: 300,
-                  height: 30,
-
-                  child: ElevatedButton(
-                    onPressed: () => _navigateToScreen(const IAchoose3()),
-                    style: buttonStyle(),
-                    child: const Text(
-                      'Hablar con un ejecutivo',
-                      style: TextStyle(fontSize: 18),
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 10),
-                SizedBox(
-                  width: 300,
-                  height: 30,
-
-                  child: ElevatedButton(
-                    onPressed: () => _navigateToScreen(const ColorDetect()),
-                    style: buttonStyle(),
-                    child: const Text(
-                      'Cambiar tema',
-                      style: TextStyle(fontSize: 18),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 20),
-          ],
+              const SizedBox(height: 50),
+              _buildMenuButtons(),
+              const SizedBox(height: 100),
+            ],
+          ),
         ),
       ),
     );
   }
 
-  ButtonStyle buttonStyle() => ElevatedButton.styleFrom(
+  Widget _buildMenuButtons() {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        _buildMenuButton('Depósito cheques', const IAchoose1()),
+        const SizedBox(height: 10),
+        _buildMenuButton('Atención por caja', const IAchoose2()),
+        const SizedBox(height: 10),
+        _buildMenuButton('Hablar con un ejecutivo', const IAchoose3()),
+        const SizedBox(height: 10),
+        _buildMenuButton('Cambiar tema', const ColorDetect()),
+      ],
+    );
+  }
+
+  Widget _buildMenuButton(String text, Widget screen) {
+    return Center(
+      child: SizedBox(
+        width: 300, // Ajusta este valor al ancho deseado
+        height: 50,
+        child: FilledButton(
+          onPressed: () => _navigateToScreen(screen),
+          style: buttonStyle(),
+          child: Text(text, style: const TextStyle(fontSize: 22)),
+        ),
+      ),
+    );
+  }
+
+  ButtonStyle buttonStyle() => FilledButton.styleFrom(
     backgroundColor: const Color(0xFFF30C0C),
     foregroundColor: Colors.white,
     padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 48),
-    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(50)),
     elevation: 5,
+    textStyle: const TextStyle(fontSize: 22),
   );
 }

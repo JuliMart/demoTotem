@@ -131,7 +131,7 @@ class _NormalModeScreenState extends State<NormalModeScreen>
     final documentValue = _documentController.text;
     debugPrint('Documento ingresado: $documentValue');
 
-    _onClearAll(); // 🔥 Borra el campo ANTES de avanzar
+    _onClearAll(); // Borra el campo ANTES de avanzar
 
     await Navigator.push(
       context,
@@ -140,7 +140,7 @@ class _NormalModeScreenState extends State<NormalModeScreen>
       ),
     );
 
-    // 🔥 Si deseas reanudar la escucha después de regresar:
+    // Si deseas reanudar la escucha después de regresar:
     if (mounted) {
       _startListening();
     }
@@ -187,12 +187,8 @@ class _NormalModeScreenState extends State<NormalModeScreen>
             _processSpeech(result.recognizedWords.toLowerCase());
           },
           partialResults: true,
-          pauseFor: const Duration(
-            seconds: 10,
-          ), // Esperar 10 segundos antes de pausar
-          listenFor: const Duration(
-            minutes: 10,
-          ), // Mantener escucha por 10 minutos
+          pauseFor: const Duration(seconds: 10),
+          listenFor: const Duration(minutes: 10),
           onSoundLevelChange: (level) {
             debugPrint("Nivel de sonido: $level");
           },
@@ -298,7 +294,7 @@ class _NormalModeScreenState extends State<NormalModeScreen>
       height: 80,
       child: FilledButton(
         style: FilledButton.styleFrom(
-          backgroundColor: Colors.grey[700],
+          backgroundColor: Colors.grey,
           foregroundColor: Colors.white,
           textStyle: const TextStyle(fontSize: 24),
         ),
@@ -314,7 +310,7 @@ class _NormalModeScreenState extends State<NormalModeScreen>
       height: 80,
       child: FilledButton(
         style: FilledButton.styleFrom(
-          backgroundColor: Colors.grey[700],
+          backgroundColor: Colors.grey,
           foregroundColor: Colors.white,
           textStyle: const TextStyle(fontSize: 24),
         ),
@@ -327,7 +323,9 @@ class _NormalModeScreenState extends State<NormalModeScreen>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Colors.grey[100],
       appBar: AppBar(
+        backgroundColor: Theme.of(context).colorScheme.primary,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
           onPressed: () {
@@ -335,25 +333,27 @@ class _NormalModeScreenState extends State<NormalModeScreen>
             Navigator.pop(context);
           },
         ),
-        backgroundColor: Theme.of(context).colorScheme.primary,
       ),
-      backgroundColor: Colors.grey[100],
       body: SingleChildScrollView(
         child: ConstrainedBox(
+          // Ocupar al menos todo el alto de la pantalla
           constraints: BoxConstraints(
             minHeight: MediaQuery.of(context).size.height,
           ),
           child: Center(
             child: Column(
+              // Para que se centre verticalmente, no ocupe todo el alto por defecto
+              mainAxisSize: MainAxisSize.min,
               children: [
-                ///  const SizedBox(height: 290),
+                const SizedBox(height: 50),
                 const Text(
                   "Ingresa",
-                  style: TextStyle(fontSize: 60, fontWeight: FontWeight.bold),
+                  style: TextStyle(fontSize: 90, fontWeight: FontWeight.bold),
                 ),
                 const SizedBox(height: 20),
 
-                Container(
+                // Campo de texto
+                SizedBox(
                   width: 300,
                   child: TextField(
                     controller: _documentController,
@@ -365,14 +365,18 @@ class _NormalModeScreenState extends State<NormalModeScreen>
                   ),
                 ),
                 const SizedBox(height: 20),
+
+                // Botón de micrófono
                 IconButton(
                   icon: Icon(_isListening ? Icons.mic : Icons.mic_none),
                   iconSize: 40,
-                  color: Color(0xFFF30C0C),
+                  color: const Color(0xFFF30C0C),
                   onPressed: _isListening ? _stopListening : _startListening,
                 ),
                 const SizedBox(height: 20),
-                Container(
+
+                // Teclado numérico
+                SizedBox(
                   width: 300,
                   child: Column(
                     children: [
@@ -414,31 +418,31 @@ class _NormalModeScreenState extends State<NormalModeScreen>
                     ],
                   ),
                 ),
-                const SizedBox(height: 200),
-                // Mensaje informativo para el usuario:
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 20.0),
-                  child: Text(
-                    "Puedes decir los números en voz alta y luego 'Continuar'.",
-                    textAlign: TextAlign.center,
-                    style: TextStyle(fontSize: 14, color: Colors.grey[800]),
-                  ),
+                const SizedBox(height: 50),
+
+                // Mensaje informativo
+                const Text(
+                  "Puedes decir los números en voz alta y luego 'Continuar'.",
+                  textAlign: TextAlign.center,
+                  style: TextStyle(fontSize: 16, color: Colors.black54),
                 ),
                 const SizedBox(height: 20),
+
+                // Botón "Continuar"
                 FilledButton(
                   style: FilledButton.styleFrom(
                     backgroundColor: Color(0xFFF30C0C),
                     foregroundColor: Colors.white,
                     padding: const EdgeInsets.symmetric(
-                      horizontal: 40,
-                      vertical: 30,
+                      horizontal: 70,
+                      vertical: 50,
                     ),
                     textStyle: const TextStyle(fontSize: 22),
                   ),
                   onPressed: _onContinuePressed,
                   child: const Text("Continuar"),
                 ),
-                const SizedBox(height: 20),
+                const SizedBox(height: 50),
               ],
             ),
           ),
