@@ -77,9 +77,6 @@ class _NormalModeScreenState extends State<NormalModeScreen>
     if (digitsOnly.length >= 8) {
       if (!_eightDigitLimitReached) {
         _eightDigitLimitReached = true;
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Máximo de 8 dígitos alcanzado')),
-        );
       }
       return;
     } else {
@@ -342,16 +339,15 @@ class _NormalModeScreenState extends State<NormalModeScreen>
           ),
           child: Center(
             child: Column(
-              // Para que se centre verticalmente, no ocupe todo el alto por defecto
+              // Para centrar verticalmente y que no ocupe todo el alto por defecto
               mainAxisSize: MainAxisSize.min,
               children: [
-                const SizedBox(height: 50),
+                const SizedBox(height: 220),
                 const Text(
                   "Ingresa",
                   style: TextStyle(fontSize: 90, fontWeight: FontWeight.bold),
                 ),
-                const SizedBox(height: 20),
-
+                const SizedBox(height: 90),
                 // Campo de texto
                 SizedBox(
                   width: 300,
@@ -365,7 +361,6 @@ class _NormalModeScreenState extends State<NormalModeScreen>
                   ),
                 ),
                 const SizedBox(height: 20),
-
                 // Botón de micrófono
                 IconButton(
                   icon: Icon(_isListening ? Icons.mic : Icons.mic_none),
@@ -374,7 +369,6 @@ class _NormalModeScreenState extends State<NormalModeScreen>
                   onPressed: _isListening ? _stopListening : _startListening,
                 ),
                 const SizedBox(height: 20),
-
                 // Teclado numérico
                 SizedBox(
                   width: 300,
@@ -418,20 +412,18 @@ class _NormalModeScreenState extends State<NormalModeScreen>
                     ],
                   ),
                 ),
-                const SizedBox(height: 50),
-
+                const SizedBox(height: 125),
                 // Mensaje informativo
                 const Text(
                   "Puedes decir los números en voz alta y luego 'Continuar'.",
                   textAlign: TextAlign.center,
                   style: TextStyle(fontSize: 16, color: Colors.black54),
                 ),
-                const SizedBox(height: 20),
-
+                const SizedBox(height: 250),
                 // Botón "Continuar"
                 FilledButton(
                   style: FilledButton.styleFrom(
-                    backgroundColor: Color(0xFFF30C0C),
+                    backgroundColor: const Color(0xFFF30C0C),
                     foregroundColor: Colors.white,
                     padding: const EdgeInsets.symmetric(
                       horizontal: 70,

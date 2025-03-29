@@ -21,6 +21,8 @@ class _IAchoose1State extends State<IAchoose1> {
   @override
   void initState() {
     super.initState();
+    // Al iniciar, el ticket es null (lo que indica que aún no se generó)
+    _ticketNumber = null;
     _speech = stt.SpeechToText();
     _commandExecuted = false;
     _documentEntered = false;
@@ -39,9 +41,9 @@ class _IAchoose1State extends State<IAchoose1> {
     bool available = await _speech.initialize(
       onStatus: (status) {
         debugPrint('Estado del micrófono: $status');
-        if (status == "done" || status == 'notListening') {
+        if ((status == "done" || status == 'notListening') && mounted) {
           Future.delayed(const Duration(seconds: 1), () {
-            if (mounted && !_commandExecuted) _startListening();
+            if (!_commandExecuted) _startListening();
           });
         }
       },
@@ -60,7 +62,7 @@ class _IAchoose1State extends State<IAchoose1> {
       _speech.listen(
         localeId: 'es_CL',
         listenFor: const Duration(minutes: 5),
-        pauseFor: const Duration(seconds: 1),
+        pauseFor: const Duration(seconds: 15),
         partialResults: true,
         onResult: (result) {
           final recognized = result.recognizedWords.toLowerCase().trim();
@@ -75,14 +77,10 @@ class _IAchoose1State extends State<IAchoose1> {
 
           if (words.isEmpty) return;
 
-          // Si reconoce algo como "finalizar", ejecuta la lógica
+          // Procesa el comando "lizar" vía voz sin retardo
           if (words.any((word) => word.contains("lizar")) &&
               !_commandExecuted) {
-            Future.delayed(const Duration(milliseconds: 500), () {
-              if (!_commandExecuted) {
-                _onFinishPressed();
-              }
-            });
+            _onVoiceFinishCommand();
           }
         },
       );
@@ -94,15 +92,17 @@ class _IAchoose1State extends State<IAchoose1> {
     setState(() => _isListening = false);
   }
 
-  void _onFinishPressed() {
-    _stopListening();
+  // Método para el comando de voz "lizar"
+  void _onVoiceFinishCommand() {
+    // Se invoca exclusivamente vía voz.
+    _speech.cancel();
 
     setState(() {
       _ticketNumber = 100 + (DateTime.now().millisecondsSinceEpoch % 900);
       _commandExecuted = true;
     });
 
-    Future.delayed(const Duration(seconds: 2), () {
+    Future.delayed(const Duration(seconds: 4), () {
       if (mounted) {
         Navigator.pushReplacement(
           context,
@@ -112,13 +112,41 @@ class _IAchoose1State extends State<IAchoose1> {
           setState(() {
             _commandExecuted = false;
             _documentEntered = false;
+            _ticketNumber = null;
           });
         });
       }
     });
   }
 
-  /// Unificamos el estilo de los botones con bordes redondeados (radio 50)
+  // Método para el botón "Finalizar"
+  void _onButtonFinishPressed() {
+    // Se invoca solo al pulsar el botón.
+    _speech.cancel();
+
+    setState(() {
+      _ticketNumber = 100 + (DateTime.now().millisecondsSinceEpoch % 900);
+      _commandExecuted = true;
+    });
+
+    Future.delayed(const Duration(seconds: 4), () {
+      if (mounted) {
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (context) => const HomeScreen()),
+        ).then((_) {
+          // Al volver a esta pantalla, reseteamos el flujo
+          setState(() {
+            _commandExecuted = false;
+            _documentEntered = false;
+            _ticketNumber = null;
+          });
+        });
+      }
+    });
+  }
+
+  /// Unifica el estilo de los botones con bordes redondeados (radio 50)
   ButtonStyle buttonStyle(Color color) {
     return FilledButton.styleFrom(
       backgroundColor: color,
@@ -149,7 +177,7 @@ class _IAchoose1State extends State<IAchoose1> {
               ),
               const SizedBox(height: 40),
               if (_ticketNumber != null) ...[
-                // Texto grande
+                // Texto grande mostrando el ticket
                 const Text(
                   'Su número de atención es:',
                   style: TextStyle(fontSize: 40, fontWeight: FontWeight.bold),
@@ -174,10 +202,10 @@ class _IAchoose1State extends State<IAchoose1> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  // Botón "Finalizar"
+                  // Botón "Finalizar" que usa el método para botón
                   FilledButton(
                     style: buttonStyle(const Color(0xFFF30C0C)),
-                    onPressed: _onFinishPressed,
+                    onPressed: _onButtonFinishPressed,
                     child: const Text("Finalizar"),
                   ),
                   const SizedBox(width: 20),

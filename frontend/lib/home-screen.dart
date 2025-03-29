@@ -33,12 +33,14 @@ class _HomeScreenState extends State<HomeScreen> {
       );
       _channel.stream.listen(
         (message) {
+          // Solo procesa el mensaje si la ruta actual es la pantalla activa
           if (!(ModalRoute.of(context)?.isCurrent ?? false)) return;
           final command = message.trim().toLowerCase();
           debugPrint("Mensaje recibido: '$command'");
-          if (command == "thumbs_up") {
-            _simulateButtonPressIA();
-          }
+          // Si el comando no es "thumbs_up", se ignora
+          if (command != "thumbs_up") return;
+          // Solo si es "thumbs_up" se simula la acción
+          _simulateButtonPressIA();
         },
         onDone: () => setState(() => isConnecting = false),
         onError: (error) => setState(() => isConnecting = false),

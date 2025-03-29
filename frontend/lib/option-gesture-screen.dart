@@ -19,6 +19,7 @@ class _OptionGestureScreenState extends State<OptionGestureScreen> {
   bool isConnecting = true;
   late stt.SpeechToText _speech;
   DateTime? _lastGestureTime;
+  bool _gestureProcessed = false; // Bandera para evitar múltiples detecciones
 
   @override
   void initState() {
@@ -81,11 +82,18 @@ class _OptionGestureScreenState extends State<OptionGestureScreen> {
           final currentTime = DateTime.now();
           final trimmedMessage = message.trim();
 
-          // Evita gestos repetidos en poco tiempo
+          // Si el gesto detectado es el mismo que el anterior, y no ha pasado suficiente tiempo,
+          // y además no es "waiting", se ignora para evitar repeticiones.
           if (_lastGesture == trimmedMessage &&
+              _lastGesture != "waiting" &&
               _lastGestureTime != null &&
               currentTime.difference(_lastGestureTime!) <
-                  const Duration(seconds: 3)) {
+                  const Duration(seconds: 5)) {
+            return;
+          }
+
+          // Si ya se procesó un gesto (distinto a "waiting"), no se procesa de nuevo.
+          if (trimmedMessage != "waiting" && _gestureProcessed) {
             return;
           }
 
@@ -95,12 +103,16 @@ class _OptionGestureScreenState extends State<OptionGestureScreen> {
           debugPrint("Gesto detectado: '$trimmedMessage'");
 
           if (trimmedMessage == "number_1") {
+            _gestureProcessed = true;
             _navigateToScreen(IAchoose1(key: UniqueKey()));
           } else if (trimmedMessage == "number_2") {
+            _gestureProcessed = true;
             _navigateToScreen(const IAchoose2());
           } else if (trimmedMessage == "number_3") {
+            _gestureProcessed = true;
             _navigateToScreen(const IAchoose3());
           } else if (trimmedMessage == "number_4") {
+            _gestureProcessed = true;
             _navigateToScreen(const ColorDetect());
           }
         },
@@ -145,7 +157,7 @@ class _OptionGestureScreenState extends State<OptionGestureScreen> {
     _channel.sink.close();
     _speech.cancel();
     super.dispose();
-  }
+  } // <-- Aquí se cierra correctamente el dispose()
 
   @override
   Widget build(BuildContext context) {
@@ -170,25 +182,25 @@ class _OptionGestureScreenState extends State<OptionGestureScreen> {
             children: [
               const SizedBox(height: 150),
               const Text(
-                '¿En qué puedo ayudarte?',
-                style: TextStyle(fontSize: 60, fontWeight: FontWeight.bold),
+                'Elige una opción',
+                style: TextStyle(fontSize: 90, fontWeight: FontWeight.bold),
                 textAlign: TextAlign.center,
               ),
               const SizedBox(height: 20),
-              Image.asset('assets/ejecutivo.png', height: 300),
+              Image.asset('assets/ejecutivo.png', height: 600),
               const SizedBox(height: 20),
               if (isConnecting)
                 const Text(
                   'Conectando con la IA...',
                   style: TextStyle(fontSize: 16, color: Colors.black54),
                 ),
-              const SizedBox(height: 30),
+              const SizedBox(height: 80),
               const Text(
                 'También puedes elegir las opciones haciendo gestos de los números del 1 al 4',
                 textAlign: TextAlign.center,
                 style: TextStyle(fontSize: 16, color: Colors.black54),
               ),
-              const SizedBox(height: 50),
+              const SizedBox(height: 150),
               _buildMenuButtons(),
               const SizedBox(height: 100),
             ],
@@ -202,13 +214,25 @@ class _OptionGestureScreenState extends State<OptionGestureScreen> {
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
-        _buildMenuButton('Depósito cheques', const IAchoose1()),
-        const SizedBox(height: 10),
-        _buildMenuButton('Atención por caja', const IAchoose2()),
-        const SizedBox(height: 10),
-        _buildMenuButton('Hablar con un ejecutivo', const IAchoose3()),
-        const SizedBox(height: 10),
-        _buildMenuButton('Cambiar tema', const ColorDetect()),
+        // Primera fila de botones
+        Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            _buildMenuButton('Depósito cheques', const IAchoose1()),
+            const SizedBox(width: 16),
+            _buildMenuButton('Atención por caja', const IAchoose2()),
+          ],
+        ),
+        const SizedBox(height: 16),
+        // Segunda fila de botones
+        Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            _buildMenuButton('Hablar con un ejecutivo', const IAchoose3()),
+            const SizedBox(width: 16),
+            _buildMenuButton('Cambiar tema', const ColorDetect()),
+          ],
+        ),
       ],
     );
   }
@@ -216,8 +240,8 @@ class _OptionGestureScreenState extends State<OptionGestureScreen> {
   Widget _buildMenuButton(String text, Widget screen) {
     return Center(
       child: SizedBox(
-        width: 300, // Ajusta este valor al ancho deseado
-        height: 50,
+        width: 350, // Ajusta este valor al ancho deseado
+        height: 80,
         child: FilledButton(
           onPressed: () => _navigateToScreen(screen),
           style: buttonStyle(),
