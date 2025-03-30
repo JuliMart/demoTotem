@@ -53,7 +53,7 @@ class _NormalModeScreenState extends State<NormalModeScreen>
   Future<void> _speakInstructions() async {
     _isSpeaking = true;
     await _flutterTts.speak(
-      "Por favor, ingresa tu DNI y luego di continuar para generar tu número de atención.",
+      "Ingresá tu DNI escribiendo o diciéndolo en voz alta. Después, decí 'continuar' para avanzar.",
     );
   }
 
@@ -426,9 +426,9 @@ class _NormalModeScreenState extends State<NormalModeScreen>
                     ),
                     const SizedBox(height: 125),
                     const Text(
-                      "Puedes decir los números en voz alta y luego 'Continuar'.",
+                      "Ingresá tu DNI escribiendo o diciéndolo en voz alta. Después, decí 'continuar' para avanzar.",
                       textAlign: TextAlign.center,
-                      style: TextStyle(fontSize: 16, color: Colors.black54),
+                      style: TextStyle(fontSize: 26, color: Colors.black54),
                     ),
                     const SizedBox(height: 250),
                     FilledButton(
@@ -463,7 +463,7 @@ class _NormalModeScreenState extends State<NormalModeScreen>
                 await _flutterTts.setSpeechRate(1.0);
                 await _flutterTts.setPitch(1.0);
                 await _flutterTts.speak(
-                  "Por favor, ingresa tu DNI y luego di continuar para generar tu número de atención.",
+                  "Ingresá tu DNI escribiendo o diciéndolo en voz alta. Después, decí 'continuar' para avanzar.",
                 );
               },
             ),

@@ -183,7 +183,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   children: [
                     FilledButton(
                       style: FilledButton.styleFrom(
-                        backgroundColor: const Color(0xFFF30C0C),
+                        backgroundColor: Colors.grey,
                         foregroundColor: Colors.white,
                         padding: const EdgeInsets.symmetric(
                           horizontal: 70,
