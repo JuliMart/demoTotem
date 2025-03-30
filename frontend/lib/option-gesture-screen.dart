@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_tts/flutter_tts.dart'; // <-- Agregado
 import 'package:web_socket_channel/web_socket_channel.dart';
 import 'IAchoose1.dart';
 import 'IAchoose2.dart';
@@ -6,6 +7,7 @@ import 'IAchoose3.dart';
 import 'color-detect.dart';
 import 'home-screen.dart';
 import 'package:speech_to_text/speech_to_text.dart' as stt;
+import 'normal-mode.dart';
 
 class OptionGestureScreen extends StatefulWidget {
   const OptionGestureScreen({super.key});
@@ -18,6 +20,8 @@ class _OptionGestureScreenState extends State<OptionGestureScreen> {
   late final WebSocketChannel _channel;
   bool isConnecting = true;
   late stt.SpeechToText _speech;
+  // Agregamos FlutterTts para instrucciones por voz:
+  late FlutterTts _flutterTts;
   DateTime? _lastGestureTime;
   bool _gestureProcessed = false; // Bandera para evitar múltiples detecciones
 
@@ -26,7 +30,48 @@ class _OptionGestureScreenState extends State<OptionGestureScreen> {
     super.initState();
     _connectToWebSocket();
     _speech = stt.SpeechToText();
+    // Inicializamos TTS:
+    _flutterTts = FlutterTts();
+    _configureTts();
+    // Detenemos la escucha mientras se reproducen las instrucciones.
+    _stopListening();
+    // Reproducimos las instrucciones luego de renderizar la UI.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _speakInstructions();
+    });
     _initSpeech();
+  }
+
+  Future<void> _configureTts() async {
+    await _flutterTts.setLanguage("es-AR");
+    await _flutterTts.setSpeechRate(1.0);
+    await _flutterTts.setPitch(1.0);
+    _flutterTts.setCompletionHandler(() {
+      if (mounted) {
+        _startListening();
+      }
+    });
+  }
+
+  Future<void> _speakInstructions() async {
+    await _flutterTts.speak(
+      "Realiza un gesto indicando el número del menú que deseas elegir.",
+    );
+  }
+
+  void _stopListening() {
+    _speech.stop();
+    debugPrint('Listening stopped.');
+  }
+
+  void _startListening() {
+    _speech.listen(
+      onResult: (result) {
+        debugPrint('Speech result: ${result.recognizedWords}');
+        // Aquí se puede procesar el resultado del reconocimiento
+      },
+    );
+    debugPrint('Listening started.');
   }
 
   void _initSpeech() async {
@@ -38,7 +83,6 @@ class _OptionGestureScreenState extends State<OptionGestureScreen> {
       },
       onError: (error) => debugPrint('Speech Error: $error'),
     );
-
     if (available) {
       _startListening();
     } else {
@@ -46,44 +90,16 @@ class _OptionGestureScreenState extends State<OptionGestureScreen> {
     }
   }
 
-  void _startListening() {
-    if (!_speech.isListening) {
-      _speech.listen(
-        localeId: 'es_CL',
-        onResult: (result) {
-          final currentTime = DateTime.now();
-          if (_lastGestureTime != null &&
-              currentTime.difference(_lastGestureTime!) <
-                  const Duration(seconds: 2)) {
-            return;
-          }
-          if (result.recognizedWords.toLowerCase().contains("atrás")) {
-            _lastGestureTime = currentTime;
-            _onCommandToExit();
-          }
-        },
-        listenFor: const Duration(minutes: 5),
-        pauseFor: const Duration(milliseconds: 500),
-        partialResults: true,
-      );
-    }
-  }
-
   void _connectToWebSocket() {
     String? _lastGesture; // Último gesto detectado
-
     try {
       _channel = WebSocketChannel.connect(
         Uri.parse('ws://127.0.0.1:8000/detect-gesture'),
       );
-
       _channel.stream.listen(
         (message) {
           final currentTime = DateTime.now();
           final trimmedMessage = message.trim();
-
-          // Si el gesto detectado es el mismo que el anterior, y no ha pasado suficiente tiempo,
-          // y además no es "waiting", se ignora para evitar repeticiones.
           if (_lastGesture == trimmedMessage &&
               _lastGesture != "waiting" &&
               _lastGestureTime != null &&
@@ -91,17 +107,12 @@ class _OptionGestureScreenState extends State<OptionGestureScreen> {
                   const Duration(seconds: 5)) {
             return;
           }
-
-          // Si ya se procesó un gesto (distinto a "waiting"), no se procesa de nuevo.
           if (trimmedMessage != "waiting" && _gestureProcessed) {
             return;
           }
-
           _lastGesture = trimmedMessage;
           _lastGestureTime = currentTime;
-
           debugPrint("Gesto detectado: '$trimmedMessage'");
-
           if (trimmedMessage == "number_1") {
             _gestureProcessed = true;
             _navigateToScreen(IAchoose1(key: UniqueKey()));
@@ -156,28 +167,41 @@ class _OptionGestureScreenState extends State<OptionGestureScreen> {
   void dispose() {
     _channel.sink.close();
     _speech.cancel();
+    _flutterTts.stop();
     super.dispose();
-  } // <-- Aquí se cierra correctamente el dispose()
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.grey[100],
       appBar: AppBar(
+        backgroundColor: Theme.of(context).colorScheme.primary,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
           onPressed: _onCommandToExit,
         ),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.help_outline),
+            onPressed: () async {
+              await _flutterTts.setLanguage("es-AR");
+              await _flutterTts.setSpeechRate(1.0);
+              await _flutterTts.setPitch(1.0);
+              await _flutterTts.speak(
+                "También podés elegir las opciones haciendo gestos de los números del 1 al 4",
+              );
+            },
+          ),
+        ],
         title: const Text('Selecciona una opción con el gesto'),
-        backgroundColor: const Color(0xFFF30C0C),
         foregroundColor: Colors.white,
       ),
-      body: Center(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.symmetric(horizontal: 16.0),
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.symmetric(horizontal: 16.0),
+        child: Center(
           child: Column(
             mainAxisSize: MainAxisSize.min,
-            // Centrar el contenido horizontalmente
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
               const SizedBox(height: 150),
@@ -196,7 +220,7 @@ class _OptionGestureScreenState extends State<OptionGestureScreen> {
                 ),
               const SizedBox(height: 80),
               const Text(
-                'También puedes elegir las opciones haciendo gestos de los números del 1 al 4',
+                'También podés elegir las opciones haciendo gestos de los números del 1 al 4',
                 textAlign: TextAlign.center,
                 style: TextStyle(fontSize: 16, color: Colors.black54),
               ),
@@ -214,23 +238,21 @@ class _OptionGestureScreenState extends State<OptionGestureScreen> {
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
-        // Primera fila de botones
         Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            _buildMenuButton('Depósito cheques', const IAchoose1()),
+            _buildMenuButton('I. Depósito cheques', const IAchoose1()),
             const SizedBox(width: 16),
-            _buildMenuButton('Atención por caja', const IAchoose2()),
+            _buildMenuButton('II. Atención por caja', const IAchoose2()),
           ],
         ),
         const SizedBox(height: 16),
-        // Segunda fila de botones
         Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            _buildMenuButton('Hablar con un ejecutivo', const IAchoose3()),
+            _buildMenuButton('III. Hablar con un ejecutivo', const IAchoose3()),
             const SizedBox(width: 16),
-            _buildMenuButton('Cambiar tema', const ColorDetect()),
+            _buildMenuButton('IV. Cambiar tema', const ColorDetect()),
           ],
         ),
       ],
@@ -240,7 +262,7 @@ class _OptionGestureScreenState extends State<OptionGestureScreen> {
   Widget _buildMenuButton(String text, Widget screen) {
     return Center(
       child: SizedBox(
-        width: 350, // Ajusta este valor al ancho deseado
+        width: 350,
         height: 80,
         child: FilledButton(
           onPressed: () => _navigateToScreen(screen),

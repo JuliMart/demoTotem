@@ -1,5 +1,5 @@
-// home-screen.dart
 import 'package:flutter/material.dart';
+import 'package:flutter_tts/flutter_tts.dart';
 import 'package:web_socket_channel/web_socket_channel.dart';
 import 'normal-mode.dart';
 
@@ -10,14 +10,56 @@ class HomeScreen extends StatefulWidget {
   State<HomeScreen> createState() => _HomeScreenState();
 }
 
+enum LanguageOption { spanish, english }
+
 class _HomeScreenState extends State<HomeScreen> {
   late final WebSocketChannel _channel;
   bool isConnecting = true;
+  final FlutterTts _flutterTts = FlutterTts();
+  LanguageOption _selectedLanguage = LanguageOption.spanish;
 
   @override
   void initState() {
     super.initState();
     _connectToWebSocket();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _speakInstructions();
+    });
+  }
+
+  Future<void> _speakInstructions() async {
+    String message = _getInstructionMessage();
+    await _flutterTts.setLanguage(_getTtsLanguageCode());
+    await _flutterTts.setSpeechRate(1.0);
+    await _flutterTts.setPitch(1.0);
+    await _flutterTts.speak(message);
+  }
+
+  String _getInstructionMessage() {
+    switch (_selectedLanguage) {
+      case LanguageOption.english:
+        return "Press Continue or raise your thumb to access with A I";
+      case LanguageOption.spanish:
+      default:
+        return "Presioná Continuar o levantá el pulgar para acceder con I A";
+    }
+  }
+
+  String _getTtsLanguageCode() {
+    switch (_selectedLanguage) {
+      case LanguageOption.english:
+        return "en-US";
+      case LanguageOption.spanish:
+      default:
+        return "es-AR";
+    }
+  }
+
+  void _changeLanguage(LanguageOption option) {
+    setState(() {
+      _selectedLanguage = option;
+    });
+    _speakInstructions();
   }
 
   void _connectToWebSocket() {
@@ -27,13 +69,11 @@ class _HomeScreenState extends State<HomeScreen> {
       );
       _channel.stream.listen(
         (message) {
-          // Solo procesa el mensaje si la ruta actual es la pantalla activa
           if (!(ModalRoute.of(context)?.isCurrent ?? false)) return;
           final command = message.trim().toLowerCase();
           debugPrint("Mensaje recibido: '$command'");
-          // Si el comando no es "thumbs_up", se ignora
+
           if (command != "thumbs_up") return;
-          // Solo si es "thumbs_up" se simula la acción
           _simulateButtonPressIA();
         },
         onDone: () => setState(() => isConnecting = false),
@@ -51,10 +91,15 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   void _simulateButtonPressIA() {
+    final snackBarText =
+        _selectedLanguage == LanguageOption.english
+            ? 'Thumbs up detected. Accessing with A.I.!'
+            : 'Pulgar arriba detectado. ¡Accediendo con IA!';
+
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Pulgar arriba detectado. ¡Accediendo con IA!'),
-        duration: Duration(seconds: 1),
+      SnackBar(
+        content: Text(snackBarText),
+        duration: const Duration(seconds: 1),
       ),
     );
     Navigator.push(
@@ -73,38 +118,61 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   void dispose() {
     _channel.sink.close();
+    _flutterTts.stop();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
+    final isSpanish = _selectedLanguage == LanguageOption.spanish;
+
     return Scaffold(
       backgroundColor: Colors.grey[100],
-      appBar: AppBar(backgroundColor: Theme.of(context).colorScheme.primary),
+      appBar: AppBar(
+        backgroundColor: Theme.of(context).colorScheme.primary,
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.help_outline),
+            onPressed: _speakInstructions,
+          ),
+          PopupMenuButton<LanguageOption>(
+            onSelected: _changeLanguage,
+            icon: const Icon(Icons.language),
+            itemBuilder:
+                (context) => [
+                  const PopupMenuItem(
+                    value: LanguageOption.spanish,
+                    child: Text('Español'),
+                  ),
+                  const PopupMenuItem(
+                    value: LanguageOption.english,
+                    child: Text('English'),
+                  ),
+                ],
+          ),
+        ],
+      ),
       body: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 16.0),
         child: Column(
           children: [
             const SizedBox(height: 300),
-            const Text(
-              'BIENVENIDO!',
-              style: TextStyle(fontSize: 90, fontWeight: FontWeight.bold),
+            Text(
+              isSpanish ? '¡BIENVENIDO!' : 'WELCOME!',
+              style: const TextStyle(fontSize: 90, fontWeight: FontWeight.bold),
             ),
-
             const SizedBox(height: 20),
             Image.asset('assets/pngegg.png', height: 800, width: 800),
             const SizedBox(height: 20),
             if (isConnecting)
-              const Center(
-                child: Text(
-                  'Conectando con la IA...',
-                  style: TextStyle(fontSize: 16, color: Colors.black54),
-                ),
+              Text(
+                isSpanish ? 'Conectando con la IA...' : 'Connecting to A.I...',
+                style: const TextStyle(fontSize: 16, color: Colors.black54),
               ),
-            const Text(
-              'Presiona "Continuar" o levanta el pulgar para acceder con IA',
+            Text(
+              _getInstructionMessage(),
               textAlign: TextAlign.center,
-              style: TextStyle(fontSize: 16, color: Colors.black54),
+              style: const TextStyle(fontSize: 16, color: Colors.black54),
             ),
             const SizedBox(height: 200),
             Row(
@@ -112,7 +180,7 @@ class _HomeScreenState extends State<HomeScreen> {
               children: [
                 FilledButton(
                   style: FilledButton.styleFrom(
-                    backgroundColor: Color(0xFFF30C0C),
+                    backgroundColor: const Color(0xFFF30C0C),
                     foregroundColor: Colors.white,
                     padding: const EdgeInsets.symmetric(
                       horizontal: 70,
@@ -121,7 +189,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     textStyle: const TextStyle(fontSize: 22),
                   ),
                   onPressed: _simulateButtonPressContinuar,
-                  child: const Text("Continuar"),
+                  child: Text(isSpanish ? "Continuar" : "Continue"),
                 ),
                 const SizedBox(width: 20),
                 FilledButton.icon(
@@ -136,7 +204,9 @@ class _HomeScreenState extends State<HomeScreen> {
                   ),
                   onPressed: _simulateButtonPressIA,
                   icon: const Icon(Icons.smart_toy),
-                  label: const Text("Acceder con IA"),
+                  label: Text(
+                    isSpanish ? "Acceder con IA" : "Access with A.I.",
+                  ),
                 ),
               ],
             ),

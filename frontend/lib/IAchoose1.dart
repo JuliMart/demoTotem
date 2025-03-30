@@ -1,6 +1,15 @@
+import 'dart:math';
 import 'package:flutter/material.dart';
-import 'package:speech_to_text/speech_to_text.dart' as stt;
+import 'package:flutter_tts/flutter_tts.dart'; // <-- Agregado
+import 'package:web_socket_channel/web_socket_channel.dart';
+import 'IAchoose1.dart';
+import 'IAchoose2.dart';
+import 'IAchoose3.dart';
+import 'color-detect.dart';
 import 'home-screen.dart';
+import 'package:speech_to_text/speech_to_text.dart' as stt;
+import 'normal-mode.dart';
+import 'option-gesture-screen.dart';
 
 class IAchoose1 extends StatefulWidget {
   const IAchoose1({super.key});
@@ -15,8 +24,10 @@ class _IAchoose1State extends State<IAchoose1> {
   bool _documentEntered = false; // Para evitar errores
   int? _ticketNumber;
   bool _commandExecuted = false; // Bandera para evitar múltiples ejecuciones
+  late FlutterTts _flutterTts; // Instancia para texto a voz
   int _retryCount = 0;
   static const int _maxRetries = 5;
+  int? _waitTime; // Tiempo de espera ficticio
 
   @override
   void initState() {
@@ -25,6 +36,7 @@ class _IAchoose1State extends State<IAchoose1> {
     _ticketNumber = null;
     _speech = stt.SpeechToText();
     _commandExecuted = false;
+    _flutterTts = FlutterTts(); // Inicializa FlutterTts
     _documentEntered = false;
     _startListening();
   }
@@ -94,13 +106,18 @@ class _IAchoose1State extends State<IAchoose1> {
 
   // Método para el comando de voz "lizar"
   void _onVoiceFinishCommand() {
-    // Se invoca exclusivamente vía voz.
     _speech.cancel();
-
     setState(() {
       _ticketNumber = 100 + (DateTime.now().millisecondsSinceEpoch % 900);
+      // Generamos un tiempo de espera aleatorio entre 1 y 10 minutos.
+      _waitTime = Random().nextInt(10) + 1;
       _commandExecuted = true;
     });
+
+    // Reproduce el mensaje en voz alta
+    _flutterTts.speak(
+      "Su número de atención es A-$_ticketNumber. Su tiempo de espera es de aproximadamente $_waitTime minutos.",
+    );
 
     Future.delayed(const Duration(seconds: 4), () {
       if (mounted) {
@@ -113,6 +130,7 @@ class _IAchoose1State extends State<IAchoose1> {
             _commandExecuted = false;
             _documentEntered = false;
             _ticketNumber = null;
+            _waitTime = null;
           });
         });
       }
@@ -121,13 +139,16 @@ class _IAchoose1State extends State<IAchoose1> {
 
   // Método para el botón "Finalizar"
   void _onButtonFinishPressed() {
-    // Se invoca solo al pulsar el botón.
     _speech.cancel();
-
     setState(() {
       _ticketNumber = 100 + (DateTime.now().millisecondsSinceEpoch % 900);
+      _waitTime = Random().nextInt(10) + 1;
       _commandExecuted = true;
     });
+
+    _flutterTts.speak(
+      "Su número de atención es A-$_ticketNumber. Su tiempo de espera es de aproximadamente $_waitTime minutos.",
+    );
 
     Future.delayed(const Duration(seconds: 4), () {
       if (mounted) {
@@ -135,11 +156,11 @@ class _IAchoose1State extends State<IAchoose1> {
           context,
           MaterialPageRoute(builder: (context) => const HomeScreen()),
         ).then((_) {
-          // Al volver a esta pantalla, reseteamos el flujo
           setState(() {
             _commandExecuted = false;
             _documentEntered = false;
             _ticketNumber = null;
+            _waitTime = null;
           });
         });
       }
@@ -164,20 +185,35 @@ class _IAchoose1State extends State<IAchoose1> {
       appBar: AppBar(
         title: const Text('Depósito de Cheques'),
         backgroundColor: const Color(0xFFF30C0C),
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () {
+            _speech.cancel();
+            Navigator.pushReplacement(
+              context,
+              MaterialPageRoute(builder: (context) => OptionGestureScreen()),
+            );
+          },
+        ),
       ),
       body: Center(
         child: SingleChildScrollView(
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              // Imagen grande
+              // Botón de micrófono
+              IconButton(
+                icon: Icon(_isListening ? Icons.mic : Icons.mic_none),
+                iconSize: 40,
+                color: const Color(0xFFF30C0C),
+                onPressed: _isListening ? _stopListening : _startListening,
+              ),
               Padding(
                 padding: const EdgeInsets.all(16.0),
                 child: Image.asset('assets/check.png', height: 400),
               ),
               const SizedBox(height: 40),
               if (_ticketNumber != null) ...[
-                // Texto grande mostrando el ticket
                 const Text(
                   'Su número de atención es:',
                   style: TextStyle(fontSize: 40, fontWeight: FontWeight.bold),
@@ -191,6 +227,12 @@ class _IAchoose1State extends State<IAchoose1> {
                   ),
                 ),
                 const SizedBox(height: 30),
+                if (_waitTime != null)
+                  Text(
+                    'Su tiempo de espera es de aproximadamente $_waitTime minutos',
+                    style: const TextStyle(fontSize: 36, color: Colors.black87),
+                  ),
+                const SizedBox(height: 30),
               ] else ...[
                 const Text(
                   'Presione o diga "Finalizar" \npara generar su número de atención.',
@@ -202,14 +244,12 @@ class _IAchoose1State extends State<IAchoose1> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  // Botón "Finalizar" que usa el método para botón
                   FilledButton(
                     style: buttonStyle(const Color(0xFFF30C0C)),
                     onPressed: _onButtonFinishPressed,
                     child: const Text("Finalizar"),
                   ),
                   const SizedBox(width: 20),
-                  // Botón "Volver" con el mismo estilo
                   FilledButton(
                     style: buttonStyle(Colors.grey),
                     onPressed: () {
@@ -220,12 +260,6 @@ class _IAchoose1State extends State<IAchoose1> {
                 ],
               ),
               const SizedBox(height: 30),
-              // Ícono micrófono
-              Icon(
-                _isListening ? Icons.mic : Icons.mic_none,
-                size: 50,
-                color: const Color(0xFFF30C0C),
-              ),
             ],
           ),
         ),
