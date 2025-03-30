@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_tts/flutter_tts.dart';
 import 'package:speech_to_text/speech_to_text.dart' as stt;
-import 'option-gesture-screen.dart';
 import 'home-screen.dart';
+import 'option-gesture-screen.dart';
 
 class NormalModeScreen extends StatefulWidget {
   const NormalModeScreen({Key? key}) : super(key: key);
@@ -14,16 +15,46 @@ class _NormalModeScreenState extends State<NormalModeScreen>
     with WidgetsBindingObserver {
   final TextEditingController _documentController = TextEditingController();
   late stt.SpeechToText _speech;
+  late FlutterTts _flutterTts;
   bool _isListening = false;
+  bool _isSpeaking = false;
+  DateTime? _ignoreUntil;
   String _previousRecognized = "";
-  bool _eightDigitLimitReached = false; // Variable de control
+  bool _eightDigitLimitReached = false;
 
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
     _speech = stt.SpeechToText();
-    _startListening();
+    _flutterTts = FlutterTts();
+    _configureTts();
+    // Detenemos la escucha mientras se leen las instrucciones.
+    _stopListening();
+    // Leemos las instrucciones después de que la UI se renderice.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _speakInstructions();
+    });
+  }
+
+  Future<void> _configureTts() async {
+    await _flutterTts.setLanguage("es-AR");
+    await _flutterTts.setSpeechRate(1.0);
+    await _flutterTts.setPitch(1.0);
+    // Cuando termina de hablar, marcamos que ya no se está reproduciendo
+    // y establecemos un período para ignorar comandos (2 segundos)
+    _flutterTts.setCompletionHandler(() {
+      _isSpeaking = false;
+      _ignoreUntil = DateTime.now().add(const Duration(seconds: 2));
+      if (mounted) _startListening();
+    });
+  }
+
+  Future<void> _speakInstructions() async {
+    _isSpeaking = true;
+    await _flutterTts.speak(
+      "Por favor, ingresa tu DNI y luego di continuar para generar tu número de atención.",
+    );
   }
 
   @override
@@ -31,21 +62,17 @@ class _NormalModeScreenState extends State<NormalModeScreen>
     WidgetsBinding.instance.removeObserver(this);
     _documentController.dispose();
     _speech.cancel();
+    _flutterTts.stop();
     super.dispose();
   }
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
-    // Detenemos la escucha cuando la app pasa a segundo plano
     if (state == AppLifecycleState.paused) {
       _stopListening();
-    }
-    // Al reanudarse, esperamos unos milisegundos para reiniciar la escucha
-    else if (state == AppLifecycleState.resumed) {
+    } else if (state == AppLifecycleState.resumed) {
       Future.delayed(const Duration(milliseconds: 300), () {
-        if (mounted) {
-          _startListening();
-        }
+        if (mounted) _startListening();
       });
     }
   }
@@ -70,20 +97,13 @@ class _NormalModeScreenState extends State<NormalModeScreen>
 
   void _onDigitPressed(String digit) {
     if (!mounted) return;
-    // Elimina los puntos para obtener solo los dígitos.
     String digitsOnly = _documentController.text.replaceAll('.', '');
-
-    // Si ya alcanzó o superó los 8 dígitos...
     if (digitsOnly.length >= 8) {
-      if (!_eightDigitLimitReached) {
-        _eightDigitLimitReached = true;
-      }
+      _eightDigitLimitReached = true;
       return;
     } else {
       _eightDigitLimitReached = false;
     }
-
-    // Se añade el nuevo dígito y se formatea
     digitsOnly += digit;
     String formatted = _formatWithDots(digitsOnly);
     setState(() {
@@ -116,7 +136,7 @@ class _NormalModeScreenState extends State<NormalModeScreen>
     if (!mounted) return;
     final documentValue = _documentController.text;
     debugPrint('Documento ingresado: $documentValue');
-    _stopListening(); // Detener la escucha antes de cambiar de pantalla
+    _stopListening();
     Navigator.push(
       context,
       MaterialPageRoute(builder: (context) => const HomeScreen()),
@@ -127,34 +147,20 @@ class _NormalModeScreenState extends State<NormalModeScreen>
     if (!mounted) return;
     final documentValue = _documentController.text;
     debugPrint('Documento ingresado: $documentValue');
-
-    _onClearAll(); // Borra el campo ANTES de avanzar
-
+    _onClearAll();
     await Navigator.push(
       context,
       MaterialPageRoute(
         builder: (context) => OptionGestureScreen(key: UniqueKey()),
       ),
     );
-
-    // Si deseas reanudar la escucha después de regresar:
     if (mounted) {
-      _startListening();
-    }
-  }
-
-  @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    if (!_speech.isListening) {
-      debugPrint("Reactivando escucha desde didChangeDependencies");
       _startListening();
     }
   }
 
   void _startListening() async {
     if (_speech.isListening || _isListening) return;
-
     bool available = await _speech.initialize(
       onStatus: (status) {
         debugPrint('Status: $status');
@@ -162,9 +168,7 @@ class _NormalModeScreenState extends State<NormalModeScreen>
             mounted &&
             !_isListening) {
           Future.delayed(const Duration(milliseconds: 300), () {
-            if (mounted && !_isListening) {
-              _startListening();
-            }
+            if (mounted && !_isListening) _startListening();
           });
         }
       },
@@ -172,7 +176,6 @@ class _NormalModeScreenState extends State<NormalModeScreen>
         debugPrint('Error: $error');
       },
     );
-
     if (available) {
       if (!mounted) return;
       setState(() => _isListening = true);
@@ -181,6 +184,11 @@ class _NormalModeScreenState extends State<NormalModeScreen>
           localeId: 'es_CL',
           onResult: (result) {
             if (!mounted) return;
+            // Si se está reproduciendo TTS o se ignoran comandos temporalmente, no procesamos.
+            if (_isSpeaking ||
+                (_ignoreUntil != null &&
+                    DateTime.now().isBefore(_ignoreUntil!)))
+              return;
             _processSpeech(result.recognizedWords.toLowerCase());
           },
           partialResults: true,
@@ -216,11 +224,9 @@ class _NormalModeScreenState extends State<NormalModeScreen>
     _previousRecognized = spokenText;
     debugPrint('Reconocido (raw): $spokenText');
     debugPrint('Parte nueva: $newPart');
-
     String cleanedText = newPart.replaceAll(RegExp(r'[^\w\s]'), '').trim();
     debugPrint('Reconocido (limpio): $cleanedText');
     List<String> tokens = cleanedText.split(RegExp(r'\s+'));
-
     for (var token in tokens) {
       if (token.contains("todo")) {
         _onClearAll();
@@ -281,8 +287,9 @@ class _NormalModeScreenState extends State<NormalModeScreen>
         return "9";
       case "cero":
         return "0";
+      default:
+        return "";
     }
-    return "";
   }
 
   Widget _buildNumberButton(String digit) {
@@ -327,19 +334,34 @@ class _NormalModeScreenState extends State<NormalModeScreen>
           icon: const Icon(Icons.arrow_back),
           onPressed: () {
             _speech.cancel();
-            Navigator.pop(context);
+            Navigator.pushReplacement(
+              context,
+              MaterialPageRoute(builder: (context) => HomeScreen()),
+            );
           },
         ),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.help_outline),
+            onPressed: () async {
+              // Configura TTS y reproduce las instrucciones
+              await _flutterTts.setLanguage("es-AR");
+              await _flutterTts.setSpeechRate(1.0);
+              await _flutterTts.setPitch(1.0);
+              await _flutterTts.speak(
+                "Por favor, ingresa tu DNI y luego di continuar para generar tu número de atención.",
+              );
+            },
+          ),
+        ],
       ),
       body: SingleChildScrollView(
         child: ConstrainedBox(
-          // Ocupar al menos todo el alto de la pantalla
           constraints: BoxConstraints(
             minHeight: MediaQuery.of(context).size.height,
           ),
           child: Center(
             child: Column(
-              // Para centrar verticalmente y que no ocupe todo el alto por defecto
               mainAxisSize: MainAxisSize.min,
               children: [
                 const SizedBox(height: 220),
@@ -348,7 +370,6 @@ class _NormalModeScreenState extends State<NormalModeScreen>
                   style: TextStyle(fontSize: 90, fontWeight: FontWeight.bold),
                 ),
                 const SizedBox(height: 90),
-                // Campo de texto
                 SizedBox(
                   width: 300,
                   child: TextField(
@@ -361,7 +382,6 @@ class _NormalModeScreenState extends State<NormalModeScreen>
                   ),
                 ),
                 const SizedBox(height: 20),
-                // Botón de micrófono
                 IconButton(
                   icon: Icon(_isListening ? Icons.mic : Icons.mic_none),
                   iconSize: 40,
@@ -369,7 +389,6 @@ class _NormalModeScreenState extends State<NormalModeScreen>
                   onPressed: _isListening ? _stopListening : _startListening,
                 ),
                 const SizedBox(height: 20),
-                // Teclado numérico
                 SizedBox(
                   width: 300,
                   child: Column(
@@ -413,14 +432,12 @@ class _NormalModeScreenState extends State<NormalModeScreen>
                   ),
                 ),
                 const SizedBox(height: 125),
-                // Mensaje informativo
                 const Text(
                   "Puedes decir los números en voz alta y luego 'Continuar'.",
                   textAlign: TextAlign.center,
                   style: TextStyle(fontSize: 16, color: Colors.black54),
                 ),
                 const SizedBox(height: 250),
-                // Botón "Continuar"
                 FilledButton(
                   style: FilledButton.styleFrom(
                     backgroundColor: const Color(0xFFF30C0C),

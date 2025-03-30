@@ -1,8 +1,6 @@
 name: flutter_app
-description: "A new Flutter project."
-
-publish_to: 'none' # Remove this line if you wish to publish to pub.dev
-
+description: A new Flutter project.
+publish_to: 'none'
 version: 1.0.0+1
 
 environment:
@@ -10,6 +8,8 @@ environment:
 
 dependencies:
   flutter:
+    sdk: flutter
+  flutter_localizations:
     sdk: flutter
   permission_handler: ^11.0.1
   cupertino_icons: ^1.0.8
@@ -19,19 +19,20 @@ dependencies:
   path_provider: ^2.1.5
   web_socket_channel: ^3.0.2
   speech_to_text: ^6.1.1
-  
-
+  flutter_tts: ^3.5.2
+  intl: ^0.19.0  # <--- AHORA en el lugar correcto
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
-  flutter_lints: ^5.0.0
+  flutter_lints: ^3.0.0
 
 flutter:
+  uses-material-design: true
+  generate: true
   assets:
     - assets/pngegg.png
     - assets/ejecutivo.png
     - assets/check.png
     - assets/cashier.png
     - assets/executive.png
-  uses-material-design: true
