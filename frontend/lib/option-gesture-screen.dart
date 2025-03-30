@@ -2,8 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_tts/flutter_tts.dart'; // <-- Agregado
 import 'package:web_socket_channel/web_socket_channel.dart';
 import 'IAchoose1.dart';
-import 'IAchoose2.dart';
-import 'IAchoose3.dart';
 import 'color-detect.dart';
 import 'home-screen.dart';
 import 'package:speech_to_text/speech_to_text.dart' as stt;
@@ -55,7 +53,7 @@ class _OptionGestureScreenState extends State<OptionGestureScreen> {
 
   Future<void> _speakInstructions() async {
     await _flutterTts.speak(
-      "También podés elegir las opciones haciendo gestos de los números del 1 al 4",
+      "Usá tu mano izquierda o derecha para seleccionar entre las opciones disponibles.",
     );
   }
 
@@ -113,18 +111,12 @@ class _OptionGestureScreenState extends State<OptionGestureScreen> {
           _lastGesture = trimmedMessage;
           _lastGestureTime = currentTime;
           debugPrint("Gesto detectado: '$trimmedMessage'");
-          if (trimmedMessage == "number_1") {
+          if (trimmedMessage == "left_hand") {
             _gestureProcessed = true;
-            _navigateToScreen(IAchoose1(key: UniqueKey()));
-          } else if (trimmedMessage == "number_2") {
+            _navigateToScreen(const ColorDetect()); // Depósito de cheques
+          } else if (trimmedMessage == "right_hand") {
             _gestureProcessed = true;
-            _navigateToScreen(const IAchoose2());
-          } else if (trimmedMessage == "number_3") {
-            _gestureProcessed = true;
-            _navigateToScreen(const IAchoose3());
-          } else if (trimmedMessage == "number_4") {
-            _gestureProcessed = true;
-            _navigateToScreen(const ColorDetect());
+            _navigateToScreen(const IAchoose1()); // Cambiar tema
           }
         },
         onDone: () {
@@ -210,9 +202,9 @@ class _OptionGestureScreenState extends State<OptionGestureScreen> {
                     ),
                   const SizedBox(height: 80),
                   const Text(
-                    'También podés elegir las opciones haciendo gestos de los números del 1 al 4',
+                    "Usá tu mano izquierda o derecha para seleccionar entre las opciones disponibles.",
                     textAlign: TextAlign.center,
-                    style: TextStyle(fontSize: 16, color: Colors.black54),
+                    style: TextStyle(fontSize: 26, color: Colors.black54),
                   ),
                   const SizedBox(height: 150),
                   _buildMenuButtons(),
@@ -233,7 +225,7 @@ class _OptionGestureScreenState extends State<OptionGestureScreen> {
                 await _flutterTts.setSpeechRate(1.0);
                 await _flutterTts.setPitch(1.0);
                 await _flutterTts.speak(
-                  "También podés elegir las opciones haciendo gestos de los números del 1 al 4",
+                  "Usá tu mano izquierda o derecha para seleccionar entre las opciones disponibles.",
                 );
               },
             ),
@@ -244,28 +236,12 @@ class _OptionGestureScreenState extends State<OptionGestureScreen> {
   }
 
   Widget _buildMenuButtons() {
-    return Column(
-      mainAxisSize: MainAxisSize.min,
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.center,
       children: [
-        // Primera fila de botones
-        Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            _buildMenuButton('I. Depósito cheques', const IAchoose1()),
-            const SizedBox(width: 16),
-            _buildMenuButton('II. Atención por caja', const IAchoose2()),
-          ],
-        ),
-        const SizedBox(height: 16),
-        // Segunda fila de botones
-        Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            _buildMenuButton('III. Hablar con un ejecutivo', const IAchoose3()),
-            const SizedBox(width: 16),
-            _buildMenuButton('IV. Cambiar tema', const ColorDetect()),
-          ],
-        ),
+        _buildMenuButton('Atención por caja', const IAchoose1()),
+        const SizedBox(width: 16),
+        _buildMenuButton('Cambiar tema', const ColorDetect()),
       ],
     );
   }
