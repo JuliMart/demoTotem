@@ -340,122 +340,135 @@ class _NormalModeScreenState extends State<NormalModeScreen>
             );
           },
         ),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.help_outline),
-            onPressed: () async {
-              // Configura TTS y reproduce las instrucciones
-              await _flutterTts.setLanguage("es-AR");
-              await _flutterTts.setSpeechRate(1.0);
-              await _flutterTts.setPitch(1.0);
-              await _flutterTts.speak(
-                "Por favor, ingresa tu DNI y luego di continuar para generar tu número de atención.",
-              );
-            },
-          ),
-        ],
+        // Se elimina el botón de ayuda del AppBar
       ),
-      body: SingleChildScrollView(
-        child: ConstrainedBox(
-          constraints: BoxConstraints(
-            minHeight: MediaQuery.of(context).size.height,
-          ),
-          child: Center(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                const SizedBox(height: 220),
-                const Text(
-                  "Ingresa",
-                  style: TextStyle(fontSize: 90, fontWeight: FontWeight.bold),
-                ),
-                const SizedBox(height: 90),
-                SizedBox(
-                  width: 300,
-                  child: TextField(
-                    controller: _documentController,
-                    readOnly: true,
-                    decoration: const InputDecoration(
-                      labelText: "DNI",
-                      border: OutlineInputBorder(),
+      body: Stack(
+        children: [
+          SingleChildScrollView(
+            child: ConstrainedBox(
+              constraints: BoxConstraints(
+                minHeight: MediaQuery.of(context).size.height,
+              ),
+              child: Center(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const SizedBox(height: 220),
+                    const Text(
+                      "Ingresa",
+                      style: TextStyle(
+                        fontSize: 90,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
-                  ),
-                ),
-                const SizedBox(height: 20),
-                IconButton(
-                  icon: Icon(_isListening ? Icons.mic : Icons.mic_none),
-                  iconSize: 40,
-                  color: const Color(0xFFF30C0C),
-                  onPressed: _isListening ? _stopListening : _startListening,
-                ),
-                const SizedBox(height: 20),
-                SizedBox(
-                  width: 300,
-                  child: Column(
-                    children: [
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                        children: [
-                          _buildNumberButton("1"),
-                          _buildNumberButton("2"),
-                          _buildNumberButton("3"),
-                        ],
+                    const SizedBox(height: 90),
+                    SizedBox(
+                      width: 300,
+                      child: TextField(
+                        controller: _documentController,
+                        readOnly: true,
+                        decoration: const InputDecoration(
+                          labelText: "DNI",
+                          border: OutlineInputBorder(),
+                        ),
                       ),
-                      const SizedBox(height: 16),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                        children: [
-                          _buildNumberButton("4"),
-                          _buildNumberButton("5"),
-                          _buildNumberButton("6"),
-                        ],
-                      ),
-                      const SizedBox(height: 16),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                        children: [
-                          _buildNumberButton("7"),
-                          _buildNumberButton("8"),
-                          _buildNumberButton("9"),
-                        ],
-                      ),
-                      const SizedBox(height: 16),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                        children: [
-                          const SizedBox(width: 80, height: 80),
-                          _buildNumberButton("0"),
-                          _buildBackspaceButton(),
-                        ],
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 125),
-                const Text(
-                  "Puedes decir los números en voz alta y luego 'Continuar'.",
-                  textAlign: TextAlign.center,
-                  style: TextStyle(fontSize: 16, color: Colors.black54),
-                ),
-                const SizedBox(height: 250),
-                FilledButton(
-                  style: FilledButton.styleFrom(
-                    backgroundColor: const Color(0xFFF30C0C),
-                    foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 70,
-                      vertical: 50,
                     ),
-                    textStyle: const TextStyle(fontSize: 22),
-                  ),
-                  onPressed: _onContinuePressed,
-                  child: const Text("Continuar"),
+                    const SizedBox(height: 20),
+                    IconButton(
+                      icon: Icon(_isListening ? Icons.mic : Icons.mic_none),
+                      iconSize: 40,
+                      color: const Color(0xFFF30C0C),
+                      onPressed:
+                          _isListening ? _stopListening : _startListening,
+                    ),
+                    const SizedBox(height: 20),
+                    SizedBox(
+                      width: 300,
+                      child: Column(
+                        children: [
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                            children: [
+                              _buildNumberButton("1"),
+                              _buildNumberButton("2"),
+                              _buildNumberButton("3"),
+                            ],
+                          ),
+                          const SizedBox(height: 16),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                            children: [
+                              _buildNumberButton("4"),
+                              _buildNumberButton("5"),
+                              _buildNumberButton("6"),
+                            ],
+                          ),
+                          const SizedBox(height: 16),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                            children: [
+                              _buildNumberButton("7"),
+                              _buildNumberButton("8"),
+                              _buildNumberButton("9"),
+                            ],
+                          ),
+                          const SizedBox(height: 16),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                            children: [
+                              const SizedBox(width: 80, height: 80),
+                              _buildNumberButton("0"),
+                              _buildBackspaceButton(),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 125),
+                    const Text(
+                      "Puedes decir los números en voz alta y luego 'Continuar'.",
+                      textAlign: TextAlign.center,
+                      style: TextStyle(fontSize: 16, color: Colors.black54),
+                    ),
+                    const SizedBox(height: 250),
+                    FilledButton(
+                      style: FilledButton.styleFrom(
+                        backgroundColor: const Color(0xFFF30C0C),
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 70,
+                          vertical: 50,
+                        ),
+                        textStyle: const TextStyle(fontSize: 22),
+                      ),
+                      onPressed: _onContinuePressed,
+                      child: const Text("Continuar"),
+                    ),
+                    const SizedBox(height: 50),
+                  ],
                 ),
-                const SizedBox(height: 50),
-              ],
+              ),
             ),
           ),
-        ),
+          // Botón de ayuda posicionado en la esquina superior derecha
+          Positioned(
+            top: 16,
+            right: 16,
+            child: IconButton(
+              icon: const Icon(Icons.help_outline),
+              iconSize: 70,
+              onPressed: () async {
+                // Configura TTS y reproduce las instrucciones
+                await _flutterTts.setLanguage("es-AR");
+                await _flutterTts.setSpeechRate(1.0);
+                await _flutterTts.setPitch(1.0);
+                await _flutterTts.speak(
+                  "Por favor, ingresa tu DNI y luego di continuar para generar tu número de atención.",
+                );
+              },
+            ),
+          ),
+        ],
       ),
     );
   }
