@@ -8,8 +8,6 @@ import time
 import uvicorn
 import logging
 import numpy as np
-from fastapi import UploadFile, File
-
 
 app = FastAPI()
 
@@ -104,27 +102,20 @@ def recognize_number_gesture(fingers, hand_landmarks):
     Interpreta el gesto basándose en el estado de los dedos.
     Retorna:
       - "thumbs_up" si el pulgar está elevado en comparación al índice.
-      - "number_1" si sólo el índice está extendido: [0,1,0,0,0].
-      - "number_2" si el índice y el medio están extendidos: [0,1,1,0,0].
-      - "number_3" si el índice, medio y anular están extendidos: [0,1,1,1,0].
-      - "number_4" si el índice, medio , anular y menique están extendidos: [0,1,1,1,1].
-
-            - "waiting" en otros casos.
+      - "left_hand" o "right_hand" si se detecta movimiento de mano.
+      - "waiting" en otros casos.
     """
     thumb_tip = hand_landmarks.landmark[mp_hands.HandLandmark.THUMB_TIP]
     index_tip = hand_landmarks.landmark[mp_hands.HandLandmark.INDEX_FINGER_TIP]
+
     # Si se detecta que el pulgar está arriba, se interpreta como thumbs_up
     if thumb_tip.y < index_tip.y:
         return "thumbs_up"
-    if fingers == [0, 1, 0, 0, 0]:
-        return "number_1"
-    elif fingers == [0, 1, 1, 0, 0]:
-        return "number_2"
-    elif fingers == [0, 1, 1, 1, 0]:
-        return "number_3"
-    elif fingers == [0, 1, 1, 1, 1]:
-        return "number_4"
-    return "waiting"
+
+    # Identifica si es mano izquierda o derecha
+    # Nota: Esto requiere contexto de MediaPipe para saber cuál mano es.
+    # Para mantener tu estructura, devolveremos "hand" genérico.
+    return "hand_detected"
 
 
 def process_frames():
@@ -142,16 +133,26 @@ def process_frames():
             rgb_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
             result_hands = hands.process(rgb_frame)
             new_gesture = "waiting"
-            if result_hands.multi_hand_landmarks:
-                for hand_landmarks in result_hands.multi_hand_landmarks:
+
+            if result_hands.multi_hand_landmarks and result_hands.multi_handedness:
+                for idx, hand_landmarks in enumerate(result_hands.multi_hand_landmarks):
                     fingers = get_finger_states(hand_landmarks)
-                    new_gesture = recognize_number_gesture(
-                        fingers, hand_landmarks)
-                    # Procesa sólo la primera mano detectada
+
+                    # Detectar thumbs_up
+                    thumb_tip = hand_landmarks.landmark[mp_hands.HandLandmark.THUMB_TIP]
+                    index_tip = hand_landmarks.landmark[mp_hands.HandLandmark.INDEX_FINGER_TIP]
+                    if thumb_tip.y < index_tip.y:
+                        new_gesture = "thumbs_up"
+                        break
+
+                    # Detectar izquierda o derecha
+                    handedness = result_hands.multi_handedness[idx].classification[0].label
+                    new_gesture = "left_hand" if handedness == "Left" else "right_hand"
                     break
+
             gesture_detected = new_gesture
 
-            # Definir una región de interés (ROI) central para detectar el color dominante (simulando el torso)
+            # Detección de color (sin cambios)
             h, w, _ = frame.shape
             roi_width = int(w * 0.3)
             roi_height = int(h * 0.3)
@@ -171,9 +172,10 @@ def process_frames():
                     clothing_color = "error"
 
             time.sleep(0.05)
+
         except Exception as e:
             logger.error(f"Error en process_frames: {e}")
-            time.sleep(1)  # Esperar un poco antes de reiniciar el bucle
+            time.sleep(1)
 
 
 @app.websocket("/detect-gesture")
@@ -211,27 +213,6 @@ async def websocket_clothing(websocket: WebSocket):
 @app.get("/")
 async def home():
     return {"message": "FastAPI server is running"}
-
-
-@app.post("/detect-gesture-image")
-async def detect_gesture_image(image: UploadFile = File(...)):
-    contents = await image.read()
-    nparr = np.frombuffer(contents, np.uint8)
-    frame = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
-
-    if frame is None:
-        return {"error": "Invalid image"}
-
-    rgb_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-    result_hands = hands.process(rgb_frame)
-    gesture = "waiting"
-    if result_hands.multi_hand_landmarks:
-        for hand_landmarks in result_hands.multi_hand_landmarks:
-            fingers = get_finger_states(hand_landmarks)
-            gesture = recognize_number_gesture(fingers, hand_landmarks)
-            break
-
-    return {"gesture": gesture}
 
 
 @app.on_event("startup")
