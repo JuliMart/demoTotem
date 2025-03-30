@@ -41,7 +41,7 @@ class _HomeScreenState extends State<HomeScreen> {
         return "Press Continue or raise your thumb to access with A I";
       case LanguageOption.spanish:
       default:
-        return "Presioná Continuar o levantá el pulgar para acceder con I A";
+        return "Presiona Continuar o levanta el pulgar para acceder con I A";
     }
   }
 
@@ -51,7 +51,7 @@ class _HomeScreenState extends State<HomeScreen> {
         return "en-US";
       case LanguageOption.spanish:
       default:
-        return "es-AR";
+        return "es-AR"; // <--- Esto fuerza el acento argentino 🇦🇷
     }
   }
 
@@ -131,20 +131,16 @@ class _HomeScreenState extends State<HomeScreen> {
       appBar: AppBar(
         backgroundColor: Theme.of(context).colorScheme.primary,
         actions: [
-          IconButton(
-            icon: const Icon(Icons.help_outline),
-            onPressed: _speakInstructions,
-          ),
           PopupMenuButton<LanguageOption>(
             onSelected: _changeLanguage,
             icon: const Icon(Icons.language),
             itemBuilder:
-                (context) => [
-                  const PopupMenuItem(
+                (context) => const [
+                  PopupMenuItem(
                     value: LanguageOption.spanish,
                     child: Text('Español'),
                   ),
-                  const PopupMenuItem(
+                  PopupMenuItem(
                     value: LanguageOption.english,
                     child: Text('English'),
                   ),
@@ -152,67 +148,87 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
         ],
       ),
-      body: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 16.0),
-        child: Column(
-          children: [
-            const SizedBox(height: 300),
-            Text(
-              isSpanish ? '¡BIENVENIDO!' : 'WELCOME!',
-              style: const TextStyle(fontSize: 90, fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 20),
-            Image.asset('assets/pngegg.png', height: 800, width: 800),
-            const SizedBox(height: 20),
-            if (isConnecting)
-              Text(
-                isSpanish ? 'Conectando con la IA...' : 'Connecting to A.I...',
-                style: const TextStyle(fontSize: 16, color: Colors.black54),
-              ),
-            Text(
-              _getInstructionMessage(),
-              textAlign: TextAlign.center,
-              style: const TextStyle(fontSize: 16, color: Colors.black54),
-            ),
-            const SizedBox(height: 200),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
+      body: Stack(
+        children: [
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16.0),
+            child: Column(
               children: [
-                FilledButton(
-                  style: FilledButton.styleFrom(
-                    backgroundColor: const Color(0xFFF30C0C),
-                    foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 70,
-                      vertical: 50,
-                    ),
-                    textStyle: const TextStyle(fontSize: 22),
-                  ),
-                  onPressed: _simulateButtonPressContinuar,
-                  child: Text(isSpanish ? "Continuar" : "Continue"),
-                ),
-                const SizedBox(width: 20),
-                FilledButton.icon(
-                  style: FilledButton.styleFrom(
-                    backgroundColor: Colors.grey,
-                    foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 70,
-                      vertical: 50,
-                    ),
-                    textStyle: const TextStyle(fontSize: 22),
-                  ),
-                  onPressed: _simulateButtonPressIA,
-                  icon: const Icon(Icons.smart_toy),
-                  label: Text(
-                    isSpanish ? "Acceder con IA" : "Access with A.I.",
+                const SizedBox(height: 300),
+                Text(
+                  isSpanish ? '¡BIENVENIDO!' : 'WELCOME!',
+                  style: const TextStyle(
+                    fontSize: 90,
+                    fontWeight: FontWeight.bold,
                   ),
                 ),
+                const SizedBox(height: 20),
+                Image.asset('assets/pngegg.png', height: 800, width: 800),
+                const SizedBox(height: 20),
+                if (isConnecting)
+                  Text(
+                    isSpanish
+                        ? 'Conectando con la IA...'
+                        : 'Connecting to A.I...',
+                    style: const TextStyle(fontSize: 16, color: Colors.black54),
+                  ),
+                Text(
+                  _getInstructionMessage(),
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(fontSize: 26, color: Colors.black54),
+                ),
+                const SizedBox(height: 200),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    FilledButton(
+                      style: FilledButton.styleFrom(
+                        backgroundColor: const Color(0xFFF30C0C),
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 70,
+                          vertical: 50,
+                        ),
+                        textStyle: const TextStyle(fontSize: 22),
+                      ),
+                      onPressed: _simulateButtonPressContinuar,
+                      child: Text(isSpanish ? "Continuar" : "Continue"),
+                    ),
+                    const SizedBox(width: 20),
+                    FilledButton.icon(
+                      style: FilledButton.styleFrom(
+                        backgroundColor: Colors.grey,
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 70,
+                          vertical: 50,
+                        ),
+                        textStyle: const TextStyle(fontSize: 22),
+                      ),
+                      onPressed: _simulateButtonPressIA,
+                      icon: const Icon(Icons.smart_toy),
+                      label: Text(
+                        isSpanish ? "Acceder con IA" : "Access with A.I.",
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 20),
               ],
             ),
-            const SizedBox(height: 20),
-          ],
-        ),
+          ),
+
+          // 🔹 Botón de ayuda fuera del AppBar
+          Positioned(
+            top: 20,
+            right: 20,
+            child: IconButton(
+              icon: const Icon(Icons.help_outline, size: 70),
+              tooltip: 'Ayuda',
+              onPressed: _speakInstructions,
+            ),
+          ),
+        ],
       ),
     );
   }

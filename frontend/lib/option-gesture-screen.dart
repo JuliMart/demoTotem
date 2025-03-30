@@ -55,7 +55,7 @@ class _OptionGestureScreenState extends State<OptionGestureScreen> {
 
   Future<void> _speakInstructions() async {
     await _flutterTts.speak(
-      "Realiza un gesto indicando el número del menú que deseas elegir.",
+      "También podés elegir las opciones haciendo gestos de los números del 1 al 4",
     );
   }
 
@@ -181,55 +181,64 @@ class _OptionGestureScreenState extends State<OptionGestureScreen> {
           icon: const Icon(Icons.arrow_back),
           onPressed: _onCommandToExit,
         ),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.help_outline),
-            onPressed: () async {
-              await _flutterTts.setLanguage("es-AR");
-              await _flutterTts.setSpeechRate(1.0);
-              await _flutterTts.setPitch(1.0);
-              await _flutterTts.speak(
-                "También podés elegir las opciones haciendo gestos de los números del 1 al 4",
-              );
-            },
-          ),
-        ],
         title: const Text('Selecciona una opción con el gesto'),
         foregroundColor: Colors.white,
+        // Quitamos el botón de ayuda del AppBar para colocarlo fuera.
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.symmetric(horizontal: 16.0),
-        child: Center(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
-              const SizedBox(height: 150),
-              const Text(
-                'Elige una opción',
-                style: TextStyle(fontSize: 90, fontWeight: FontWeight.bold),
-                textAlign: TextAlign.center,
+      body: Stack(
+        children: [
+          SingleChildScrollView(
+            padding: const EdgeInsets.symmetric(horizontal: 16.0),
+            child: Center(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  const SizedBox(height: 150),
+                  const Text(
+                    'Elige una opción',
+                    style: TextStyle(fontSize: 90, fontWeight: FontWeight.bold),
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 20),
+                  Image.asset('assets/ejecutivo.png', height: 600),
+                  const SizedBox(height: 20),
+                  if (isConnecting)
+                    const Text(
+                      'Conectando con la IA...',
+                      style: TextStyle(fontSize: 16, color: Colors.black54),
+                    ),
+                  const SizedBox(height: 80),
+                  const Text(
+                    'También podés elegir las opciones haciendo gestos de los números del 1 al 4',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(fontSize: 16, color: Colors.black54),
+                  ),
+                  const SizedBox(height: 150),
+                  _buildMenuButtons(),
+                  const SizedBox(height: 100),
+                ],
               ),
-              const SizedBox(height: 20),
-              Image.asset('assets/ejecutivo.png', height: 600),
-              const SizedBox(height: 20),
-              if (isConnecting)
-                const Text(
-                  'Conectando con la IA...',
-                  style: TextStyle(fontSize: 16, color: Colors.black54),
-                ),
-              const SizedBox(height: 80),
-              const Text(
-                'También podés elegir las opciones haciendo gestos de los números del 1 al 4',
-                textAlign: TextAlign.center,
-                style: TextStyle(fontSize: 16, color: Colors.black54),
-              ),
-              const SizedBox(height: 150),
-              _buildMenuButtons(),
-              const SizedBox(height: 100),
-            ],
+            ),
           ),
-        ),
+          // Botón de ayuda posicionado en la esquina superior derecha, tamaño 70.
+          Positioned(
+            top: 16,
+            right: 16,
+            child: IconButton(
+              icon: const Icon(Icons.help_outline),
+              iconSize: 70,
+              onPressed: () async {
+                await _flutterTts.setLanguage("es-AR");
+                await _flutterTts.setSpeechRate(1.0);
+                await _flutterTts.setPitch(1.0);
+                await _flutterTts.speak(
+                  "También podés elegir las opciones haciendo gestos de los números del 1 al 4",
+                );
+              },
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -238,6 +247,7 @@ class _OptionGestureScreenState extends State<OptionGestureScreen> {
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
+        // Primera fila de botones
         Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
@@ -247,6 +257,7 @@ class _OptionGestureScreenState extends State<OptionGestureScreen> {
           ],
         ),
         const SizedBox(height: 16),
+        // Segunda fila de botones
         Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
