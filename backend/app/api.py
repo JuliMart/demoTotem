@@ -8,6 +8,8 @@ import time
 import uvicorn
 import logging
 import numpy as np
+from fastapi import UploadFile, File
+
 
 app = FastAPI()
 
@@ -209,6 +211,27 @@ async def websocket_clothing(websocket: WebSocket):
 @app.get("/")
 async def home():
     return {"message": "FastAPI server is running"}
+
+
+@app.post("/detect-gesture-image")
+async def detect_gesture_image(image: UploadFile = File(...)):
+    contents = await image.read()
+    nparr = np.frombuffer(contents, np.uint8)
+    frame = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
+
+    if frame is None:
+        return {"error": "Invalid image"}
+
+    rgb_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+    result_hands = hands.process(rgb_frame)
+    gesture = "waiting"
+    if result_hands.multi_hand_landmarks:
+        for hand_landmarks in result_hands.multi_hand_landmarks:
+            fingers = get_finger_states(hand_landmarks)
+            gesture = recognize_number_gesture(fingers, hand_landmarks)
+            break
+
+    return {"gesture": gesture}
 
 
 @app.on_event("startup")
