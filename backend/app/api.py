@@ -37,7 +37,7 @@ age_list = ['(0-2)', '(4-6)', '(8-12)', '(15-20)',
 
 def map_age_range(original_range):
     # Agrupa en dos categorías: "Joven" para rangos hasta 20 años y "Adulto" para el resto.
-    if original_range in ['(0-2)', '(4-6)', '(8-12)', '(15-20)']:
+    if original_range in ['(0-2)', '(4-6)', '(8-12)', '(15-20)', '(25-32)']:
         return "Joven"
     else:
         return "Adulto"

@@ -22,6 +22,8 @@ class _OptionGestureScreenState extends State<OptionGestureScreen> {
   DateTime? _lastGestureTime;
   bool _gestureProcessed = false;
 
+  bool _isTtsSpeaking = false;
+
   @override
   void initState() {
     super.initState();
@@ -48,6 +50,8 @@ class _OptionGestureScreenState extends State<OptionGestureScreen> {
   }
 
   Future<void> _speakInstructions() async {
+    _isTtsSpeaking = true;
+
     await _flutterTts.speak(
       "Usá tu mano izquierda o derecha para seleccionar entre las opciones disponibles.",
     );
@@ -62,7 +66,7 @@ class _OptionGestureScreenState extends State<OptionGestureScreen> {
     _speech.listen(
       onResult: (result) {
         String recognized = result.recognizedWords.toLowerCase();
-        debugPrint('Speech result: $recognized');
+        debugPrint('Speech result: \$recognized');
         if (recognized.contains('ayuda')) {
           _simulateHelpButton();
         }
@@ -78,7 +82,7 @@ class _OptionGestureScreenState extends State<OptionGestureScreen> {
           _startListening();
         }
       },
-      onError: (error) => debugPrint('Speech Error: $error'),
+      onError: (error) => debugPrint('Speech Error: \$error'),
     );
     if (available) {
       _startListening();
@@ -109,7 +113,7 @@ class _OptionGestureScreenState extends State<OptionGestureScreen> {
           }
           _lastGesture = trimmedMessage;
           _lastGestureTime = currentTime;
-          debugPrint("Gesto detectado: '$trimmedMessage'");
+          debugPrint("Gesto detectado: '\$trimmedMessage'");
           if (trimmedMessage == "left_hand") {
             _gestureProcessed = true;
             _navigateToScreen(const ColorDetect());
@@ -123,13 +127,13 @@ class _OptionGestureScreenState extends State<OptionGestureScreen> {
           setState(() => isConnecting = false);
         },
         onError: (error) {
-          debugPrint("Error WebSocket: $error");
+          debugPrint("Error WebSocket: \$error");
           setState(() => isConnecting = false);
         },
         cancelOnError: true,
       );
     } catch (e) {
-      debugPrint("Error al conectar WebSocket: $e");
+      debugPrint("Error al conectar WebSocket: \$e");
       setState(() => isConnecting = false);
     }
   }
@@ -154,11 +158,25 @@ class _OptionGestureScreenState extends State<OptionGestureScreen> {
     }
   }
 
-  // Función para simular la acción del botón de ayuda mediante TTS
   void _simulateHelpButton() async {
+    if (_isTtsSpeaking) return;
+    _isTtsSpeaking = true;
+
+    if (_speech.isListening) {
+      _speech.stop();
+    }
+
     await _flutterTts.setLanguage("es-AR");
     await _flutterTts.setSpeechRate(1.0);
     await _flutterTts.setPitch(1.0);
+
+    _flutterTts.setCompletionHandler(() {
+      _isTtsSpeaking = false;
+      if (mounted && !_speech.isListening) {
+        _startListening();
+      }
+    });
+
     await _flutterTts.speak(
       "Levanta tu mano izquierda o derecha para seleccionar entre las opciones disponibles.",
     );
@@ -176,6 +194,7 @@ class _OptionGestureScreenState extends State<OptionGestureScreen> {
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
+        const SizedBox(height: 200),
         _buildMenuButton('Atención por caja', const IAchoose1()),
         const SizedBox(width: 16),
         _buildMenuButton('Cambiar tema', const ColorDetect()),
@@ -187,7 +206,7 @@ class _OptionGestureScreenState extends State<OptionGestureScreen> {
     return Center(
       child: SizedBox(
         width: 350,
-        height: 80,
+        height: 100,
         child: FilledButton(
           onPressed: () => _navigateToScreen(screen),
           style: buttonStyle(),
@@ -200,7 +219,7 @@ class _OptionGestureScreenState extends State<OptionGestureScreen> {
   ButtonStyle buttonStyle() => FilledButton.styleFrom(
     backgroundColor: const Color(0xFFF30C0C),
     foregroundColor: Colors.white,
-    padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 48),
+    padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 48),
     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(50)),
     elevation: 5,
     textStyle: const TextStyle(fontSize: 22),
@@ -214,7 +233,13 @@ class _OptionGestureScreenState extends State<OptionGestureScreen> {
         backgroundColor: Theme.of(context).colorScheme.primary,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
-          onPressed: _onCommandToExit,
+          onPressed: () {
+            _speech.cancel();
+            Navigator.pushReplacement(
+              context,
+              MaterialPageRoute(builder: (context) => const NormalModeScreen()),
+            );
+          },
         ),
         title: const Text('Selecciona una opción con el gesto'),
         foregroundColor: Colors.white,
@@ -228,7 +253,7 @@ class _OptionGestureScreenState extends State<OptionGestureScreen> {
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
-                  const SizedBox(height: 150),
+                  const SizedBox(height: 400),
                   const Text(
                     'Elige una opción',
                     style: TextStyle(fontSize: 90, fontWeight: FontWeight.bold),

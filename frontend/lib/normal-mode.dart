@@ -59,7 +59,7 @@ class _NormalModeScreenState extends State<NormalModeScreen>
   Future<void> _speakInstructions() async {
     _isSpeaking = true;
     await _flutterTts.speak(
-      "Ingresa tu DNI escribiéndolo o diciéndolo en voz alta.\nLuego presiona 'Continuar' o di 'Continuar' en voz alta.",
+      "Ingresa tu DNI escribiéndolo o diciéndolo en voz alta.\nLuego presiona 'Continuar' o di 'Continuar' para avanzar.",
     );
   }
 
@@ -182,11 +182,9 @@ class _NormalModeScreenState extends State<NormalModeScreen>
     final documentValue = _documentController.text;
     debugPrint('Documento ingresado: $documentValue');
     _onClearAll();
-    await Navigator.push(
+    await Navigator.pushReplacement(
       context,
-      MaterialPageRoute(
-        builder: (context) => OptionGestureScreen(key: UniqueKey()),
-      ),
+      MaterialPageRoute(builder: (context) => OptionGestureScreen()),
     );
     if (mounted) {
       _startListening();
@@ -333,6 +331,18 @@ class _NormalModeScreenState extends State<NormalModeScreen>
     await _flutterTts.setLanguage("es-AR");
     await _flutterTts.setSpeechRate(1.0);
     await _flutterTts.setPitch(1.0);
+
+    _isSpeaking = true;
+
+    _flutterTts.setCompletionHandler(() {
+      _isSpeaking = false;
+      _ignoreUntil = DateTime.now().add(const Duration(milliseconds: 500));
+
+      if (mounted) {
+        _startListening(); // Vuelve a escuchar voz
+        // Aquí puedes volver a iniciar el WebSocket de gestos si fuera necesario
+      }
+    });
     await _flutterTts.speak(
       "Ingresá tu DNI escribiéndolo o diciéndolo en voz alta. Después, di 'continuar' para avanzar.",
     );
@@ -422,7 +432,7 @@ class _NormalModeScreenState extends State<NormalModeScreen>
                       const SizedBox(height: 30),
                     ],
 
-                    const SizedBox(height: 120),
+                    const SizedBox(height: 60),
                     const Padding(
                       padding: EdgeInsets.symmetric(horizontal: 16.0),
                       child: Text(
@@ -533,9 +543,23 @@ class _NormalModeScreenState extends State<NormalModeScreen>
                 textStyle: const TextStyle(fontSize: 18),
               ),
               onPressed: () async {
+                _stopListening(); // Detenemos micrófono
+
                 await _flutterTts.setLanguage("es-AR");
                 await _flutterTts.setSpeechRate(1.0);
                 await _flutterTts.setPitch(1.0);
+
+                _isSpeaking = true;
+
+                _flutterTts.setCompletionHandler(() async {
+                  _isSpeaking = false;
+                  _ignoreUntil = DateTime.now().add(const Duration(seconds: 2));
+                  await Future.delayed(const Duration(seconds: 1));
+                  if (mounted) {
+                    _startListening();
+                  }
+                });
+
                 await _flutterTts.speak(
                   "Ingresá tu DNI escribiéndolo o diciéndolo en voz alta. Después, di 'continuar' para avanzar.",
                 );

@@ -1,8 +1,13 @@
-// main.dart
 import 'package:flutter/material.dart';
 import 'home-screen.dart';
+import 'gesture-websocket_service.dart';
 
 void main() {
+  // Conectar WebSocket global al iniciar la app
+  GestureWebSocketService().connect(
+    url: 'ws://localhost:8000/ws-detect-gesture-image',
+  );
+
   runApp(const MyApp());
 }
 

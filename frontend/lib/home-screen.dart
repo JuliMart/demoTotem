@@ -3,6 +3,7 @@ import 'package:flutter_tts/flutter_tts.dart';
 import 'package:web_socket_channel/web_socket_channel.dart';
 import 'normal-mode.dart';
 import 'package:speech_to_text/speech_to_text.dart' as stt;
+import 'gesture-websocket_service.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({Key? key}) : super(key: key);
@@ -27,6 +28,11 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   void initState() {
     super.initState();
+
+    // Conecta el WebSocket global para mantener la sesión activa
+    GestureWebSocketService().connect(
+      url: 'ws://127.0.0.1:8000/ws-detect-gesture-image',
+    );
     _connectToWebSocket();
     _initSpeechRecognizer(); // Inicia el reconocimiento de voz
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -39,6 +45,12 @@ class _HomeScreenState extends State<HomeScreen> {
     await _flutterTts.setLanguage(_getTtsLanguageCode());
     await _flutterTts.setSpeechRate(1.0);
     await _flutterTts.setPitch(1.0);
+
+    _flutterTts.setCompletionHandler(() {
+      if (!_speech.isListening) {
+        _startListening(); // Reactiva el micrófono tras la instrucción inicial
+      }
+    });
     await _flutterTts.speak(message);
   }
 
@@ -112,6 +124,7 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   void _startListening() {
+    if (_speech.isListening) return;
     setState(() => _isListening = true);
     _speech.listen(
       onResult: (result) {
@@ -125,10 +138,23 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
+  bool _helpSpoken = false; // 🔹 Nueva variable de control
+
   void _simulateHelpButton() async {
+    if (_helpSpoken) return; // Evita múltiples llamadas simultáneas
+    _helpSpoken = true;
+
     await _flutterTts.setLanguage("es-AR");
     await _flutterTts.setSpeechRate(1.0);
     await _flutterTts.setPitch(1.0);
+
+    _flutterTts.setCompletionHandler(() {
+      _helpSpoken = false;
+      if (!_speech.isListening) {
+        _startListening(); // Reactiva el micrófono al terminar el TTS
+      }
+    });
+
     await _flutterTts.speak(
       "Presiona el botón  'Continuar' o levanta tu dedo pulgar para acceder con I A",
     );
