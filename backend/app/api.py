@@ -8,19 +8,82 @@ import time
 import uvicorn
 import logging
 import numpy as np
+import os
 
 app = FastAPI()
 
 # Habilitar CORS
 app.add_middleware(
     CORSMiddleware,
-    # Aquí puedes especificar dominios, ej. ["http://localhost:8080"]
     allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
+# Obtiene la ruta del directorio actual (donde está api.py)
+base_dir = os.path.dirname(os.path.abspath(__file__))
+
+# Asumiendo que los modelos están en "../models" relativo a api.py
+model_dir = os.path.join(base_dir, '..', 'models')
+prototxt_path = os.path.join(model_dir, 'age_deploy.prototxt')
+caffemodel_path = os.path.join(model_dir, 'age_net.caffemodel')
+
+age_net = cv2.dnn.readNetFromCaffe(prototxt_path, caffemodel_path)
+age_list = ['(0-2)', '(4-6)', '(8-12)', '(15-20)',
+            '(25-32)', '(38-43)', '(48-53)', '(60-100)']
+
+
+def map_age_range(original_range):
+    # Agrupa en dos categorías: "Joven" para rangos hasta 20 años y "Adulto" para el resto.
+    if original_range in ['(0-2)', '(4-6)', '(8-12)', '(15-20)']:
+        return "Joven"
+    else:
+        return "Adulto"
+
+
+def detect_age(frame):
+    # Preprocesa la imagen para el modelo
+    blob = cv2.dnn.blobFromImage(
+        frame,
+        1.0,
+        (227, 227),
+        (78.4263377603, 87.7689143744, 114.895847746),
+        swapRB=False
+    )
+    age_net.setInput(blob)
+    predictions = age_net.forward()
+    i = predictions[0].argmax()
+    original_range = age_list[i]
+    age_category = map_age_range(original_range)
+    return age_category
+
+
+# Bloque de prueba para detección de edad (se ejecuta solo si ejecutas este módulo directamente)
+if __name__ == "__main__":
+    cap_test = cv2.VideoCapture(0)
+    ret, frame = cap_test.read()
+    cap_test.release()
+    if ret:
+        category = detect_age(frame)
+        print("Categoría de edad detectada:", category)
+    else:
+        print("No se pudo capturar la imagen")
+
+
+@app.get("/age-recognizer")
+def get_age():
+    # Abre una nueva instancia de la cámara para este endpoint
+    cap_local = cv2.VideoCapture(0)
+    ret, frame = cap_local.read()
+    cap_local.release()
+    if not ret:
+        return {"error": "No se pudo capturar la imagen"}
+    age_range = detect_age(frame)
+    return {"age_range": age_range}
+
+
+#
 # Inicialización de MediaPipe para las manos (gestos)
 mp_hands = mp.solutions.hands
 hands = mp_hands.Hands(
@@ -43,7 +106,7 @@ pose = mp_pose.Pose(
 gesture_detected = "waiting"
 clothing_color = "unknown"  # Se almacenará un valor hexadecimal
 
-# Captura de video (asegúrate de tener conectada una cámara)
+# Captura de video para gestos (asegúrate de tener conectada una cámara)
 cap = cv2.VideoCapture(0)
 if not cap.isOpened():
     logging.error("No se pudo abrir la cámara. Verifica que esté conectada.")
@@ -108,13 +171,8 @@ def recognize_number_gesture(fingers, hand_landmarks):
     thumb_tip = hand_landmarks.landmark[mp_hands.HandLandmark.THUMB_TIP]
     index_tip = hand_landmarks.landmark[mp_hands.HandLandmark.INDEX_FINGER_TIP]
 
-    # Si se detecta que el pulgar está arriba, se interpreta como thumbs_up
     if thumb_tip.y < index_tip.y:
         return "thumbs_up"
-
-    # Identifica si es mano izquierda o derecha
-    # Nota: Esto requiere contexto de MediaPipe para saber cuál mano es.
-    # Para mantener tu estructura, devolveremos "hand" genérico.
     return "hand_detected"
 
 
@@ -129,7 +187,6 @@ def process_frames():
                 time.sleep(0.05)
                 continue
 
-            # Convertir la imagen a RGB para MediaPipe
             rgb_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
             result_hands = hands.process(rgb_frame)
             new_gesture = "waiting"
@@ -145,14 +202,13 @@ def process_frames():
                         new_gesture = "thumbs_up"
                         break
 
-                    # Detectar izquierda o derecha
                     handedness = result_hands.multi_handedness[idx].classification[0].label
                     new_gesture = "left_hand" if handedness == "Left" else "right_hand"
                     break
 
             gesture_detected = new_gesture
 
-            # Detección de color (sin cambios)
+            # Detección de color
             h, w, _ = frame.shape
             roi_width = int(w * 0.3)
             roi_height = int(h * 0.3)
