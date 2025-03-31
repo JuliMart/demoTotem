@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_app/age-recognizer.dart';
 import 'package:web_socket_channel/web_socket_channel.dart';
 import 'normal-mode.dart';
 import 'home-screen.dart';
 import 'option-gesture-screen.dart';
+import 'age-recognizer.dart';
 
 class ColorDetect extends StatefulWidget {
   const ColorDetect({super.key});
@@ -151,7 +153,14 @@ class _ColorDetectState extends State<ColorDetect> {
                     ),
                     const SizedBox(height: 40),
                     ElevatedButton(
-                      onPressed: () => Navigator.pop(context),
+                      onPressed:
+                          () => Navigator.pushReplacement(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => const AgeRecognizerScreen(),
+                            ),
+                          ),
+
                       child: const Text("Volver"),
                       style: ElevatedButton.styleFrom(
                         backgroundColor: Colors.red,
