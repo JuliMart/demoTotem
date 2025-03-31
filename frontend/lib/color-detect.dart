@@ -24,21 +24,21 @@ class _ColorDetectState extends State<ColorDetect> {
     final blue = color.blue;
 
     if (red >= 200 && green >= 230 && blue >= 230) {
-      return "Un nuevo comienzo está por llegar. Prepárate para oportunidades inesperadas.";
+      return "Hoy podés empezar algo grande. Probá abrir tu cuenta digital o pedir un préstamo personal.";
     } else if (red <= 40 && green <= 40 && blue <= 40) {
       return "La determinación te llevará lejos. Mantén tu enfoque y alcanzarás el éxito.";
     } else if ((red - green).abs() < 30 &&
         (red - blue).abs() < 30 &&
         (green - blue).abs() < 30) {
-      return "El equilibrio en tu vida traerá tranquilidad y estabilidad.";
+      return "Estás listo para construir tu futuro con firmeza. Podés acceder a un crédito hipotecario o una cuenta vivienda.";
     } else if (red > 80 && (red > green + 30) && (red > blue + 30)) {
-      return "Un momento de pasión y aventura está por llegar. ¡Aprovecha la oportunidad!";
+      return "Hoy es un día para tomar decisiones valientes. Mostramos tus opciones de inversión rápida o adelanto de tarjeta.";
     } else if (green > red && green > blue) {
       return "El crecimiento personal y profesional se avecina. Confía en ti mismo.";
     } else if (blue > red && blue > green) {
       return "Un periodo de calma y reflexión te ayudará a tomar mejores decisiones.";
     } else {
-      return "El destino tiene una sorpresa especial para ti. ¡Mantente atento!";
+      return "Tu energía es contagiosa, usala a tu favor. Activá tu programa de puntos o conocé nuestras tarjetas con beneficios.";
     }
   }
 
@@ -133,7 +133,7 @@ class _ColorDetectState extends State<ColorDetect> {
                       child: Column(
                         children: [
                           const Text(
-                            'Tu mensaje de la fortuna:',
+                            '🔍 Descubrí cómo te ve la IA hoy',
                             style: TextStyle(
                               fontSize: 18,
                               fontWeight: FontWeight.bold,
@@ -157,7 +157,7 @@ class _ColorDetectState extends State<ColorDetect> {
                           () => Navigator.pushReplacement(
                             context,
                             MaterialPageRoute(
-                              builder: (context) => const AgeRecognizerScreen(),
+                              builder: (context) => const HomeScreen(),
                             ),
                           ),
 

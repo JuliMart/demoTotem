@@ -1,13 +1,13 @@
 import 'dart:math';
 import 'package:flutter/material.dart';
-import 'package:flutter_tts/flutter_tts.dart'; // <-- Agregado
+import 'package:flutter_tts/flutter_tts.dart';
+import 'package:speech_to_text/speech_to_text.dart' as stt;
 import 'package:web_socket_channel/web_socket_channel.dart';
 import 'IAchoose1.dart';
 import 'IAchoose2.dart';
 import 'IAchoose3.dart';
 import 'color-detect.dart';
 import 'home-screen.dart';
-import 'package:speech_to_text/speech_to_text.dart' as stt;
 import 'normal-mode.dart';
 import 'option-gesture-screen.dart';
 
@@ -21,52 +21,75 @@ class IAchoose1 extends StatefulWidget {
 class _IAchoose1State extends State<IAchoose1> {
   late stt.SpeechToText _speech;
   bool _isListening = false;
-  bool _documentEntered = false; // Para evitar errores
+  bool _documentEntered = false;
   int? _ticketNumber;
-  bool _commandExecuted = false; // Bandera para evitar múltiples ejecuciones
-  late FlutterTts _flutterTts; // Instancia para texto a voz
+  bool _commandExecuted = false;
+  late FlutterTts _flutterTts;
   int _retryCount = 0;
   static const int _maxRetries = 5;
-  int? _waitTime; // Tiempo de espera ficticio
+  int? _waitTime;
+  bool _isTtsSpeaking = false;
 
   @override
   void initState() {
     super.initState();
-    // Al iniciar, el ticket es null (lo que indica que aún no se generó)
-    _ticketNumber = null;
     _speech = stt.SpeechToText();
-    _commandExecuted = false;
-    _flutterTts = FlutterTts(); // Inicializa FlutterTts
-    _documentEntered = false;
-    _startListening();
+    _flutterTts = FlutterTts();
+    _initializeSpeechAndInstructions();
   }
 
   @override
   void dispose() {
     _stopListening();
+    _flutterTts.stop();
     super.dispose();
   }
 
-  void _startListening() async {
-    if (_speech.isListening || _retryCount >= _maxRetries) return;
-
+  Future<void> _initializeSpeechAndInstructions() async {
     bool available = await _speech.initialize(
       onStatus: (status) {
         debugPrint('Estado del micrófono: $status');
-        if ((status == "done" || status == 'notListening') && mounted) {
-          Future.delayed(const Duration(seconds: 1), () {
-            if (!_commandExecuted) _startListening();
-          });
+        if ((status == "done" || status == 'notListening') &&
+            mounted &&
+            !_commandExecuted &&
+            !_isTtsSpeaking) {
+          Future.delayed(const Duration(seconds: 1), _startListening);
         }
       },
-      onError: (error) {
-        debugPrint('Error en reconocimiento de voz: $error');
-        Future.delayed(const Duration(seconds: 2), () {
-          if (mounted && _retryCount < _maxRetries) _startListening();
-        });
-      },
+      onError: (error) => debugPrint('Error en reconocimiento de voz: $error'),
     );
 
+    if (!available) {
+      debugPrint("Reconocimiento de voz no disponible.");
+      return;
+    }
+
+    await _speech.stop();
+    _isListening = false;
+
+    await _flutterTts.setLanguage("es-AR");
+    await _flutterTts.setSpeechRate(1.0);
+    await _flutterTts.setPitch(1.0);
+
+    _isTtsSpeaking = true;
+    _flutterTts.setCompletionHandler(() {
+      _isTtsSpeaking = false;
+      if (!_speech.isListening && mounted && !_commandExecuted) {
+        Future.delayed(const Duration(milliseconds: 500), () {
+          _startListening();
+        });
+      }
+    });
+
+    await _flutterTts.speak(
+      "Presione o diga 'Finalizar' para generar su número de atención.",
+    );
+  }
+
+  void _startListening() async {
+    if (_speech.isListening || _commandExecuted || _isTtsSpeaking) return;
+
+    bool available = await _speech.initialize();
     if (available) {
       _retryCount = 0;
       setState(() => _isListening = true);
@@ -83,19 +106,19 @@ class _IAchoose1State extends State<IAchoose1> {
           List<String> words = recognized.split(RegExp(r'\s+'));
 
           if (_documentEntered) {
-            // Bloquea números una vez ingresado
-            words.removeWhere((word) => RegExp(r'^\d+$').hasMatch(word));
+            words.removeWhere((word) => RegExp(r'^\d+\$').hasMatch(word));
           }
 
           if (words.isEmpty) return;
 
-          // Procesa el comando "lizar" vía voz sin retardo
           if (words.any((word) => word.contains("lizar")) &&
               !_commandExecuted) {
             _onVoiceFinishCommand();
           }
         },
       );
+    } else {
+      debugPrint("No se pudo iniciar el reconocimiento de voz.");
     }
   }
 
@@ -104,17 +127,14 @@ class _IAchoose1State extends State<IAchoose1> {
     setState(() => _isListening = false);
   }
 
-  // Método para el comando de voz "lizar"
   void _onVoiceFinishCommand() {
     _speech.cancel();
     setState(() {
       _ticketNumber = 100 + (DateTime.now().millisecondsSinceEpoch % 900);
-      // Generamos un tiempo de espera aleatorio entre 1 y 10 minutos.
       _waitTime = Random().nextInt(10) + 1;
       _commandExecuted = true;
     });
 
-    // Reproduce el mensaje en voz alta
     _flutterTts.speak(
       "Su número de atención es A-$_ticketNumber. Su tiempo de espera es de aproximadamente $_waitTime minutos.",
     );
@@ -125,7 +145,6 @@ class _IAchoose1State extends State<IAchoose1> {
           context,
           MaterialPageRoute(builder: (context) => const HomeScreen()),
         ).then((_) {
-          // Al volver a esta pantalla, reseteamos el flujo
           setState(() {
             _commandExecuted = false;
             _documentEntered = false;
@@ -137,7 +156,6 @@ class _IAchoose1State extends State<IAchoose1> {
     });
   }
 
-  // Método para el botón "Finalizar"
   void _onButtonFinishPressed() {
     _speech.cancel();
     setState(() {
@@ -150,7 +168,7 @@ class _IAchoose1State extends State<IAchoose1> {
       "Su número de atención es A-$_ticketNumber. Su tiempo de espera es de aproximadamente $_waitTime minutos.",
     );
 
-    Future.delayed(const Duration(seconds: 4), () {
+    Future.delayed(const Duration(seconds: 7), () {
       if (mounted) {
         Navigator.pushReplacement(
           context,
@@ -167,7 +185,6 @@ class _IAchoose1State extends State<IAchoose1> {
     });
   }
 
-  /// Unifica el estilo de los botones con bordes redondeados (radio 50)
   ButtonStyle buttonStyle(Color color) {
     return FilledButton.styleFrom(
       backgroundColor: color,
@@ -201,7 +218,6 @@ class _IAchoose1State extends State<IAchoose1> {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              // Botón de micrófono
               IconButton(
                 icon: Icon(_isListening ? Icons.mic : Icons.mic_none),
                 iconSize: 40,
@@ -252,9 +268,7 @@ class _IAchoose1State extends State<IAchoose1> {
                   const SizedBox(width: 20),
                   FilledButton(
                     style: buttonStyle(Colors.grey),
-                    onPressed: () {
-                      Navigator.pop(context);
-                    },
+                    onPressed: () => Navigator.pop(context),
                     child: const Text("Volver"),
                   ),
                 ],
