@@ -11,6 +11,7 @@ import numpy as np
 import os
 
 app = FastAPI()
+latest_frame = None
 
 # Habilitar CORS
 app.add_middleware(
@@ -73,13 +74,11 @@ if __name__ == "__main__":
 
 @app.get("/age-recognizer")
 def get_age():
-    # Abre una nueva instancia de la cámara para este endpoint
-    cap_local = cv2.VideoCapture(0)
-    ret, frame = cap_local.read()
-    cap_local.release()
-    if not ret:
+    global latest_frame
+    if latest_frame is None:
         return {"error": "No se pudo capturar la imagen"}
-    age_range = detect_age(frame)
+    # Usamos el último frame capturado por el hilo de `process_frames`
+    age_range = detect_age(latest_frame)
     return {"age_range": age_range}
 
 
@@ -177,7 +176,7 @@ def recognize_number_gesture(fingers, hand_landmarks):
 
 
 def process_frames():
-    global gesture_detected, clothing_color
+    global gesture_detected, clothing_color, latest_frame
     while True:
         try:
             ret, frame = cap.read()
@@ -186,6 +185,8 @@ def process_frames():
                 clothing_color = "unknown"
                 time.sleep(0.05)
                 continue
+
+            latest_frame = frame.copy()
 
             rgb_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
             result_hands = hands.process(rgb_frame)

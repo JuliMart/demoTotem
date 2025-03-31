@@ -1,6 +1,8 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_tts/flutter_tts.dart';
 import 'package:speech_to_text/speech_to_text.dart' as stt;
+import 'package:http/http.dart' as http;
 import 'home-screen.dart';
 import 'option-gesture-screen.dart';
 
@@ -22,6 +24,10 @@ class _NormalModeScreenState extends State<NormalModeScreen>
   String _previousRecognized = "";
   bool _eightDigitLimitReached = false;
 
+  // Variables para la detección de edad
+  String? _ageCategory;
+  bool _isLoadingAge = false;
+
   @override
   void initState() {
     super.initState();
@@ -35,14 +41,14 @@ class _NormalModeScreenState extends State<NormalModeScreen>
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _speakInstructions();
     });
+    // Se inicia la detección de edad
+    _fetchAgeCategory();
   }
 
   Future<void> _configureTts() async {
     await _flutterTts.setLanguage("es-AR");
     await _flutterTts.setSpeechRate(1.0);
     await _flutterTts.setPitch(1.0);
-    // Cuando termina de hablar, marcamos que ya no se está reproduciendo
-    // y establecemos un período para ignorar comandos (2 segundos)
     _flutterTts.setCompletionHandler(() {
       _isSpeaking = false;
       _ignoreUntil = DateTime.now().add(const Duration(seconds: 2));
@@ -55,6 +61,34 @@ class _NormalModeScreenState extends State<NormalModeScreen>
     await _flutterTts.speak(
       "Ingresa tu DNI escribiéndolo o diciéndolo en voz alta.\nLuego presiona 'Continuar' o di 'Continuar' en voz alta.",
     );
+  }
+
+  Future<void> _fetchAgeCategory() async {
+    setState(() {
+      _isLoadingAge = true;
+    });
+    try {
+      final response = await http.get(
+        Uri.parse('http://localhost:8000/age-recognizer'),
+      );
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        setState(() {
+          _ageCategory = data['age_range'];
+          _isLoadingAge = false;
+        });
+      } else {
+        setState(() {
+          _ageCategory = "desconocido";
+          _isLoadingAge = false;
+        });
+      }
+    } catch (e) {
+      setState(() {
+        _ageCategory = "desconocido";
+        _isLoadingAge = false;
+      });
+    }
   }
 
   @override
@@ -168,7 +202,9 @@ class _NormalModeScreenState extends State<NormalModeScreen>
             mounted &&
             !_isListening) {
           Future.delayed(const Duration(milliseconds: 300), () {
-            if (mounted && !_isListening) _startListening();
+            if (mounted && !_isListening) {
+              _startListening();
+            }
           });
         }
       },
@@ -184,7 +220,6 @@ class _NormalModeScreenState extends State<NormalModeScreen>
           localeId: 'es_CL',
           onResult: (result) {
             if (!mounted) return;
-            // Si se está reproduciendo TTS o se ignoran comandos temporalmente, no procesamos.
             if (_isSpeaking ||
                 (_ignoreUntil != null &&
                     DateTime.now().isBefore(_ignoreUntil!)))
@@ -294,7 +329,6 @@ class _NormalModeScreenState extends State<NormalModeScreen>
     }
   }
 
-  // Función para simular la acción del botón de ayuda mediante TTS
   void _simulateHelpButton() async {
     await _flutterTts.setLanguage("es-AR");
     await _flutterTts.setSpeechRate(1.0);
@@ -352,7 +386,7 @@ class _NormalModeScreenState extends State<NormalModeScreen>
             );
           },
         ),
-        // Se elimina el botón de ayuda del AppBar
+        title: const Text("Normal Mode"),
       ),
       body: Stack(
         children: [
@@ -365,7 +399,30 @@ class _NormalModeScreenState extends State<NormalModeScreen>
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    const SizedBox(height: 220),
+                    // Se muestra el saludo y la imagen si se detectó la categoría etaria
+                    if (_ageCategory != null) ...[
+                      const SizedBox(height: 120),
+                      Text(
+                        _ageCategory!.toLowerCase() == "joven"
+                            ? "Bienvenido $_ageCategory! \nPodés acceder a un súper crédito hipotecario."
+                            : "Bienvenido $_ageCategory! \nDescubrí nuestros fondos de inversión exclusivos.",
+                        textAlign: TextAlign.center,
+                        style: const TextStyle(
+                          fontSize: 28,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      const SizedBox(height: 20),
+                      Image.asset(
+                        _ageCategory!.toLowerCase() == "joven"
+                            ? "assets/joven.png"
+                            : "assets/adulto.png",
+                        height: 300,
+                      ),
+                      const SizedBox(height: 30),
+                    ],
+
+                    const SizedBox(height: 120),
                     const Padding(
                       padding: EdgeInsets.symmetric(horizontal: 16.0),
                       child: Text(
@@ -476,7 +533,6 @@ class _NormalModeScreenState extends State<NormalModeScreen>
                 textStyle: const TextStyle(fontSize: 18),
               ),
               onPressed: () async {
-                // Configura TTS y reproduce las instrucciones
                 await _flutterTts.setLanguage("es-AR");
                 await _flutterTts.setSpeechRate(1.0);
                 await _flutterTts.setPitch(1.0);
