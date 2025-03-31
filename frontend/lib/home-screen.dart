@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_tts/flutter_tts.dart';
 import 'package:web_socket_channel/web_socket_channel.dart';
 import 'normal-mode.dart';
+import 'package:speech_to_text/speech_to_text.dart' as stt;
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({Key? key}) : super(key: key);
@@ -18,10 +19,16 @@ class _HomeScreenState extends State<HomeScreen> {
   final FlutterTts _flutterTts = FlutterTts();
   LanguageOption _selectedLanguage = LanguageOption.spanish;
 
+  // Variables para el reconocimiento de voz
+  late stt.SpeechToText _speech;
+  bool _isListening = false;
+  String _lastWords = '';
+
   @override
   void initState() {
     super.initState();
     _connectToWebSocket();
+    _initSpeechRecognizer(); // Inicia el reconocimiento de voz
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _speakInstructions();
     });
@@ -41,7 +48,7 @@ class _HomeScreenState extends State<HomeScreen> {
         return "Press Continue or raise your thumb to access with A I";
       case LanguageOption.spanish:
       default:
-        return "Presiona Continuar o levanta el pulgar para acceder con I A";
+        return "Presiona el botón 'Continuar' o levanta tu dedo pulgar para acceder con I A";
     }
   }
 
@@ -90,6 +97,43 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
+  // Funciones para el reconocimiento de voz
+  Future<void> _initSpeechRecognizer() async {
+    _speech = stt.SpeechToText();
+    bool available = await _speech.initialize(
+      onStatus: (status) => debugPrint('Speech status: $status'),
+      onError: (error) => debugPrint('Speech error: $error'),
+    );
+    if (available) {
+      _startListening();
+    } else {
+      debugPrint("El reconocimiento de voz no está disponible");
+    }
+  }
+
+  void _startListening() {
+    setState(() => _isListening = true);
+    _speech.listen(
+      onResult: (result) {
+        setState(() {
+          _lastWords = result.recognizedWords.toLowerCase();
+        });
+        if (_lastWords.contains('ayuda')) {
+          _simulateHelpButton();
+        }
+      },
+    );
+  }
+
+  void _simulateHelpButton() async {
+    await _flutterTts.setLanguage("es-AR");
+    await _flutterTts.setSpeechRate(1.0);
+    await _flutterTts.setPitch(1.0);
+    await _flutterTts.speak(
+      "Presiona el botón  'Continuar' o levanta tu dedo pulgar para acceder con I A",
+    );
+  }
+
   void _simulateButtonPressIA() {
     final snackBarText =
         _selectedLanguage == LanguageOption.english
@@ -119,6 +163,7 @@ class _HomeScreenState extends State<HomeScreen> {
   void dispose() {
     _channel.sink.close();
     _flutterTts.stop();
+    _speech.stop();
     super.dispose();
   }
 
@@ -220,12 +265,28 @@ class _HomeScreenState extends State<HomeScreen> {
 
           // 🔹 Botón de ayuda fuera del AppBar
           Positioned(
-            top: 20,
-            right: 20,
-            child: IconButton(
-              icon: const Icon(Icons.help_outline, size: 70),
-              tooltip: 'Ayuda',
-              onPressed: _speakInstructions,
+            top: 16,
+            right: 16,
+            child: FilledButton(
+              style: FilledButton.styleFrom(
+                backgroundColor: Colors.grey[700],
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 40,
+                  vertical: 30,
+                ),
+                textStyle: const TextStyle(fontSize: 18),
+              ),
+              onPressed: () async {
+                // Configura TTS y reproduce las instrucciones
+                await _flutterTts.setLanguage("es-AR");
+                await _flutterTts.setSpeechRate(1.0);
+                await _flutterTts.setPitch(1.0);
+                await _flutterTts.speak(
+                  "Presiona el botón  'Continuar' o levanta tu dedo pulgar para acceder con I A",
+                );
+              },
+              child: const Text("Ayuda"),
             ),
           ),
         ],

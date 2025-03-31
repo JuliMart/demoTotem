@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:web_socket_channel/web_socket_channel.dart';
 import 'normal-mode.dart';
 import 'home-screen.dart';
+import 'option-gesture-screen.dart';
 
 class ColorDetect extends StatefulWidget {
   const ColorDetect({super.key});
@@ -53,7 +54,12 @@ class _ColorDetectState extends State<ColorDetect> {
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
           onPressed: () {
-            Navigator.pop(context);
+            Navigator.pushReplacement(
+              context,
+              MaterialPageRoute(
+                builder: (context) => const OptionGestureScreen(),
+              ),
+            );
           },
         ),
         backgroundColor: Theme.of(context).colorScheme.primary,

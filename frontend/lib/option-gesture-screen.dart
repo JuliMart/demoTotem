@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_tts/flutter_tts.dart'; // <-- Agregado
+import 'package:flutter_tts/flutter_tts.dart';
 import 'package:web_socket_channel/web_socket_channel.dart';
 import 'IAchoose1.dart';
 import 'color-detect.dart';
@@ -18,22 +18,18 @@ class _OptionGestureScreenState extends State<OptionGestureScreen> {
   late final WebSocketChannel _channel;
   bool isConnecting = true;
   late stt.SpeechToText _speech;
-  // Agregamos FlutterTts para instrucciones por voz:
   late FlutterTts _flutterTts;
   DateTime? _lastGestureTime;
-  bool _gestureProcessed = false; // Bandera para evitar múltiples detecciones
+  bool _gestureProcessed = false;
 
   @override
   void initState() {
     super.initState();
     _connectToWebSocket();
     _speech = stt.SpeechToText();
-    // Inicializamos TTS:
     _flutterTts = FlutterTts();
     _configureTts();
-    // Detenemos la escucha mientras se reproducen las instrucciones.
     _stopListening();
-    // Reproducimos las instrucciones luego de renderizar la UI.
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _speakInstructions();
     });
@@ -65,8 +61,11 @@ class _OptionGestureScreenState extends State<OptionGestureScreen> {
   void _startListening() {
     _speech.listen(
       onResult: (result) {
-        debugPrint('Speech result: ${result.recognizedWords}');
-        // Aquí se puede procesar el resultado del reconocimiento
+        String recognized = result.recognizedWords.toLowerCase();
+        debugPrint('Speech result: $recognized');
+        if (recognized.contains('ayuda')) {
+          _simulateHelpButton();
+        }
       },
     );
     debugPrint('Listening started.');
@@ -89,7 +88,7 @@ class _OptionGestureScreenState extends State<OptionGestureScreen> {
   }
 
   void _connectToWebSocket() {
-    String? _lastGesture; // Último gesto detectado
+    String? _lastGesture;
     try {
       _channel = WebSocketChannel.connect(
         Uri.parse('ws://127.0.0.1:8000/detect-gesture'),
@@ -113,10 +112,10 @@ class _OptionGestureScreenState extends State<OptionGestureScreen> {
           debugPrint("Gesto detectado: '$trimmedMessage'");
           if (trimmedMessage == "left_hand") {
             _gestureProcessed = true;
-            _navigateToScreen(const ColorDetect()); // Depósito de cheques
+            _navigateToScreen(const ColorDetect());
           } else if (trimmedMessage == "right_hand") {
             _gestureProcessed = true;
-            _navigateToScreen(const IAchoose1()); // Cambiar tema
+            _navigateToScreen(const IAchoose1());
           }
         },
         onDone: () {
@@ -155,6 +154,16 @@ class _OptionGestureScreenState extends State<OptionGestureScreen> {
     }
   }
 
+  // Función para simular la acción del botón de ayuda mediante TTS
+  void _simulateHelpButton() async {
+    await _flutterTts.setLanguage("es-AR");
+    await _flutterTts.setSpeechRate(1.0);
+    await _flutterTts.setPitch(1.0);
+    await _flutterTts.speak(
+      "Levanta tu mano izquierda o derecha para seleccionar entre las opciones disponibles.",
+    );
+  }
+
   @override
   void dispose() {
     _channel.sink.close();
@@ -162,6 +171,40 @@ class _OptionGestureScreenState extends State<OptionGestureScreen> {
     _flutterTts.stop();
     super.dispose();
   }
+
+  Widget _buildMenuButtons() {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        _buildMenuButton('Atención por caja', const IAchoose1()),
+        const SizedBox(width: 16),
+        _buildMenuButton('Cambiar tema', const ColorDetect()),
+      ],
+    );
+  }
+
+  Widget _buildMenuButton(String text, Widget screen) {
+    return Center(
+      child: SizedBox(
+        width: 350,
+        height: 80,
+        child: FilledButton(
+          onPressed: () => _navigateToScreen(screen),
+          style: buttonStyle(),
+          child: Text(text, style: const TextStyle(fontSize: 22)),
+        ),
+      ),
+    );
+  }
+
+  ButtonStyle buttonStyle() => FilledButton.styleFrom(
+    backgroundColor: const Color(0xFFF30C0C),
+    foregroundColor: Colors.white,
+    padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 48),
+    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(50)),
+    elevation: 5,
+    textStyle: const TextStyle(fontSize: 22),
+  );
 
   @override
   Widget build(BuildContext context) {
@@ -175,7 +218,6 @@ class _OptionGestureScreenState extends State<OptionGestureScreen> {
         ),
         title: const Text('Selecciona una opción con el gesto'),
         foregroundColor: Colors.white,
-        // Quitamos el botón de ayuda del AppBar para colocarlo fuera.
       ),
       body: Stack(
         children: [
@@ -213,59 +255,32 @@ class _OptionGestureScreenState extends State<OptionGestureScreen> {
               ),
             ),
           ),
-          // Botón de ayuda posicionado en la esquina superior derecha, tamaño 70.
           Positioned(
             top: 16,
             right: 16,
-            child: IconButton(
-              icon: const Icon(Icons.help_outline),
-              iconSize: 70,
+            child: FilledButton(
+              style: FilledButton.styleFrom(
+                backgroundColor: Colors.grey[700],
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 40,
+                  vertical: 30,
+                ),
+                textStyle: const TextStyle(fontSize: 18),
+              ),
               onPressed: () async {
                 await _flutterTts.setLanguage("es-AR");
                 await _flutterTts.setSpeechRate(1.0);
                 await _flutterTts.setPitch(1.0);
                 await _flutterTts.speak(
-                  "Usá tu mano izquierda o derecha para seleccionar entre las opciones disponibles.",
+                  "Levanta tu mano izquierda o derecha para seleccionar entre las opciones disponibles.",
                 );
               },
+              child: const Text("Ayuda"),
             ),
           ),
         ],
       ),
     );
   }
-
-  Widget _buildMenuButtons() {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: [
-        _buildMenuButton('Atención por caja', const IAchoose1()),
-        const SizedBox(width: 16),
-        _buildMenuButton('Cambiar tema', const ColorDetect()),
-      ],
-    );
-  }
-
-  Widget _buildMenuButton(String text, Widget screen) {
-    return Center(
-      child: SizedBox(
-        width: 350,
-        height: 80,
-        child: FilledButton(
-          onPressed: () => _navigateToScreen(screen),
-          style: buttonStyle(),
-          child: Text(text, style: const TextStyle(fontSize: 22)),
-        ),
-      ),
-    );
-  }
-
-  ButtonStyle buttonStyle() => FilledButton.styleFrom(
-    backgroundColor: const Color(0xFFF30C0C),
-    foregroundColor: Colors.white,
-    padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 48),
-    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(50)),
-    elevation: 5,
-    textStyle: const TextStyle(fontSize: 22),
-  );
 }
